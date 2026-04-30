@@ -1,0 +1,1337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Deep Dive Interview Prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: oklch(97% 0.012 85);
+        --paper-strong: oklch(99% 0.006 85);
+        --ink: oklch(18% 0.025 250);
+        --muted: oklch(48% 0.035 248);
+        --line: oklch(85% 0.018 82);
+        --field: oklch(93% 0.015 78);
+        --olive: oklch(55% 0.095 143);
+        --olive-dark: oklch(34% 0.09 147);
+        --gold: oklch(78% 0.13 82);
+        --clay: oklch(66% 0.13 39);
+        --red: oklch(58% 0.22 28);
+        --blue: oklch(52% 0.15 246);
+        --shadow: 0 18px 44px oklch(21% 0.03 255 / 0.16);
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family:
+          "Avenir Next", "SF Pro Display", "Segoe UI Variable", "Segoe UI", sans-serif;
+        background:
+          linear-gradient(90deg, oklch(92% 0.014 84 / 0.46) 1px, transparent 1px),
+          linear-gradient(0deg, oklch(92% 0.014 84 / 0.46) 1px, transparent 1px),
+          var(--paper);
+        background-size: 28px 28px;
+        letter-spacing: 0;
+      }
+
+      button {
+        border: 0;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid color-mix(in oklch, var(--blue), white 24%);
+        outline-offset: 3px;
+      }
+
+      .page {
+        min-height: 100svh;
+        display: grid;
+        grid-template-columns: minmax(0, 430px) minmax(280px, 340px);
+        gap: clamp(18px, 4vw, 48px);
+        align-items: center;
+        justify-content: center;
+        padding: clamp(14px, 4vw, 38px);
+      }
+
+      .phone {
+        position: relative;
+        overflow: hidden;
+        height: min(860px, calc(100svh - 28px));
+        min-height: 690px;
+        width: min(100%, 430px);
+        border: 1px solid oklch(82% 0.017 80);
+        border-radius: 32px;
+        background: var(--paper-strong);
+        box-shadow: var(--shadow);
+        isolation: isolate;
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        width: 92px;
+        height: 28px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: oklch(14% 0.02 250);
+        z-index: 9;
+      }
+
+      .screen {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: max(28px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(14px) scale(0.985);
+        transition:
+          opacity 420ms var(--ease),
+          transform 420ms var(--ease);
+      }
+
+      .screen.is-active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+
+      .precall {
+        grid-template-rows: 1fr auto;
+        padding: 54px 22px 22px;
+        background:
+          linear-gradient(180deg, oklch(99% 0.006 85 / 0.92), oklch(95% 0.02 92 / 0.94)),
+          repeating-linear-gradient(135deg, transparent 0 12px, oklch(89% 0.018 83 / 0.58) 12px 13px);
+      }
+
+      .precall-main {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 26px;
+      }
+
+      .brand-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 800;
+      }
+
+      .live-chip,
+      .topic-chip,
+      .metric-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 32px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: oklch(99% 0.006 85 / 0.82);
+        font-size: 12px;
+        font-weight: 750;
+        color: var(--muted);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--red);
+        box-shadow: 0 0 0 4px color-mix(in oklch, var(--red), transparent 78%);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 9ch;
+        font-size: 68px;
+        line-height: 0.9;
+        letter-spacing: 0;
+        font-weight: 860;
+      }
+
+      .subtitle {
+        max-width: 28ch;
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.45;
+      }
+
+      .brief {
+        display: grid;
+        gap: 9px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: color-mix(in oklch, var(--paper-strong), var(--gold) 11%);
+      }
+
+      .brief-title {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .topic-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .topic-chip:nth-child(2) {
+        background: color-mix(in oklch, var(--paper-strong), var(--olive) 13%);
+      }
+
+      .topic-chip:nth-child(3) {
+        background: color-mix(in oklch, var(--paper-strong), var(--clay) 13%);
+      }
+
+      .start-button {
+        display: grid;
+        grid-template-columns: 22px 1fr 18px;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 58px;
+        padding: 0 17px;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper-strong);
+        font-weight: 820;
+        box-shadow: 0 12px 30px oklch(18% 0.025 250 / 0.22);
+        transition:
+          transform 180ms var(--ease),
+          background 180ms var(--ease);
+      }
+
+      .start-button:active {
+        transform: translateY(1px) scale(0.99);
+      }
+
+      .call {
+        padding-inline: 14px;
+        background:
+          linear-gradient(180deg, oklch(99% 0.006 85) 0%, oklch(95% 0.017 83) 74%),
+          var(--paper-strong);
+      }
+
+      .call-header {
+        position: relative;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 2px 12px;
+      }
+
+      .candidate {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .candidate strong {
+        font-size: 15px;
+      }
+
+      .candidate span {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .timer {
+        min-width: 70px;
+        text-align: center;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: oklch(100% 0 0 / 0.84);
+        border: 1px solid var(--line);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+      }
+
+      .icon-button {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.84);
+        border: 1px solid var(--line);
+      }
+
+      .feed-wrap {
+        position: relative;
+        min-height: 0;
+        padding: 8px 0 196px;
+      }
+
+      .feed {
+        position: absolute;
+        inset: 0 0 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+        padding: 6px 2px 206px;
+        scrollbar-width: none;
+      }
+
+      .feed::-webkit-scrollbar {
+        display: none;
+      }
+
+      .bubble {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 10px;
+        padding: 13px 14px 12px;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--paper-strong);
+        box-shadow: 0 8px 22px oklch(26% 0.024 250 / 0.08);
+        transform-origin: left top;
+        animation: arrive 420ms var(--ease) both;
+      }
+
+      .bubble.question {
+        background: oklch(20% 0.026 250);
+        color: var(--paper-strong);
+        border-color: transparent;
+      }
+
+      .bubble.followup {
+        background: oklch(20% 0.026 250);
+        color: var(--paper-strong);
+        border-color: transparent;
+      }
+
+      .bubble.system {
+        max-width: 100%;
+        margin-inline: auto;
+        padding: 8px 10px;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .bubble p {
+        font-size: 17px;
+        line-height: 1.38;
+        letter-spacing: 0;
+      }
+
+      .bubble .meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 11px;
+        font-weight: 820;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        opacity: 0.74;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 7px;
+        height: 1.05em;
+        margin-left: 2px;
+        vertical-align: -0.14em;
+        background: currentColor;
+        animation: blink 900ms steps(2, start) infinite;
+      }
+
+      .transcript-card {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        bottom: 92px;
+        z-index: 4;
+        display: grid;
+        gap: 7px;
+        min-height: 78px;
+        padding: 12px 132px 12px 12px;
+        border: 1px solid color-mix(in oklch, var(--line), var(--olive) 12%);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.92);
+        box-shadow: 0 14px 34px oklch(24% 0.03 250 / 0.13);
+        backdrop-filter: blur(16px);
+      }
+
+      .transcript-card .label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 820;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--olive);
+        animation: pulse 1200ms ease-in-out infinite;
+      }
+
+      #transcriptText {
+        min-height: 38px;
+        color: var(--ink);
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .camera-tile {
+        position: absolute;
+        right: 14px;
+        bottom: 96px;
+        z-index: 6;
+        width: 112px;
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border: 2px solid oklch(100% 0 0 / 0.86);
+        border-radius: var(--radius);
+        background: oklch(17% 0.025 244);
+        box-shadow: 0 14px 28px oklch(20% 0.04 250 / 0.34);
+        touch-action: none;
+        user-select: none;
+        cursor: grab;
+      }
+
+      .camera-tile:active {
+        cursor: grabbing;
+      }
+
+      .camera-noise {
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            oklch(100% 0 0 / 0.05) 0 1px,
+            transparent 1px 4px
+          ),
+          linear-gradient(150deg, oklch(50% 0.11 244 / 0.52), transparent 44%),
+          linear-gradient(25deg, oklch(72% 0.13 41 / 0.42), transparent 54%);
+        animation: cameraShift 5400ms ease-in-out infinite alternate;
+      }
+
+      .face {
+        position: absolute;
+        left: 50%;
+        top: 46%;
+        width: 58px;
+        height: 76px;
+        transform: translate(-50%, -50%);
+      }
+
+      .head {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 34px;
+        height: 38px;
+        transform: translateX(-50%);
+        border-radius: 46% 46% 44% 44%;
+        background: oklch(83% 0.065 65);
+      }
+
+      .shoulders {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 68px;
+        height: 40px;
+        transform: translateX(-50%);
+        border-radius: 50% 50% 10px 10px;
+        background: color-mix(in oklch, var(--olive-dark), black 10%);
+      }
+
+      .camera-label {
+        position: absolute;
+        left: 7px;
+        right: 7px;
+        bottom: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        color: white;
+        font-size: 10px;
+        font-weight: 820;
+      }
+
+      .meter {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 12px;
+      }
+
+      .meter i {
+        width: 3px;
+        min-height: 3px;
+        border-radius: 999px;
+        background: var(--gold);
+        animation: level 600ms ease-in-out infinite alternate;
+      }
+
+      .meter i:nth-child(2) {
+        animation-delay: 120ms;
+      }
+
+      .meter i:nth-child(3) {
+        animation-delay: 240ms;
+      }
+
+      .meter i:nth-child(4) {
+        animation-delay: 80ms;
+      }
+
+      .call-controls {
+        position: absolute;
+        left: 50%;
+        bottom: 24px;
+        z-index: 7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        transform: translateX(-50%);
+      }
+
+      .round-control {
+        display: grid;
+        place-items: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.88);
+        border: 1px solid var(--line);
+        box-shadow: 0 10px 24px oklch(23% 0.03 250 / 0.14);
+      }
+
+      .end-control {
+        width: 62px;
+        height: 62px;
+        color: white;
+        background: var(--red);
+        border-color: transparent;
+        box-shadow: 0 12px 28px color-mix(in oklch, var(--red), transparent 56%);
+      }
+
+      .recap {
+        grid-template-rows: auto 1fr auto;
+        padding: 54px 22px 22px;
+        background:
+          linear-gradient(180deg, oklch(99% 0.006 85), oklch(94% 0.018 82)),
+          var(--paper);
+      }
+
+      .recap-header {
+        display: grid;
+        gap: 12px;
+        padding-top: 14px;
+      }
+
+      .recap h2 {
+        max-width: 9ch;
+        font-size: 58px;
+        line-height: 0.92;
+        font-weight: 860;
+        letter-spacing: 0;
+      }
+
+      .recap-grid {
+        align-self: center;
+        display: grid;
+        gap: 12px;
+      }
+
+      .summary-card,
+      .player-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 10px 24px oklch(26% 0.024 250 / 0.08);
+      }
+
+      .player-card {
+        overflow: hidden;
+      }
+
+      .player-visual {
+        position: relative;
+        height: 156px;
+        background:
+          linear-gradient(135deg, oklch(18% 0.024 250), oklch(28% 0.075 143)),
+          oklch(18% 0.024 250);
+      }
+
+      .play-button {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: auto;
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.92);
+      }
+
+      .timeline {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .track {
+        height: 9px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--field);
+      }
+
+      .track span {
+        display: block;
+        width: 68%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--olive), var(--gold), var(--clay));
+      }
+
+      .summary-card {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        overflow: hidden;
+        background: var(--line);
+      }
+
+      .summary-card div {
+        display: grid;
+        gap: 5px;
+        padding: 13px 10px;
+        background: var(--paper-strong);
+      }
+
+      .summary-card strong {
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .summary-card span {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 740;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .restart-button {
+        width: 100%;
+        min-height: 54px;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper-strong);
+        font-weight: 820;
+      }
+
+      .side-panel {
+        align-self: stretch;
+        display: grid;
+        align-content: center;
+        gap: 14px;
+        max-width: 340px;
+      }
+
+      .panel-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.84);
+        box-shadow: 0 12px 34px oklch(22% 0.03 250 / 0.08);
+        overflow: hidden;
+      }
+
+      .panel-section {
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-section:last-child {
+        border-bottom: 0;
+      }
+
+      .panel-kicker {
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 840;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .panel-title {
+        font-size: 28px;
+        line-height: 1;
+        font-weight: 860;
+      }
+
+      .topic-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .topic-item {
+        display: grid;
+        grid-template-columns: 9px 1fr;
+        gap: 9px;
+        align-items: start;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .topic-item::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: var(--olive);
+      }
+
+      .topic-item:nth-child(2)::before {
+        background: var(--clay);
+      }
+
+      .topic-item:nth-child(3)::before {
+        background: var(--blue);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .metric-chip {
+        justify-content: center;
+        border-radius: var(--radius);
+        min-height: 42px;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+        stroke: currentColor;
+        stroke-width: 2.15;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.55);
+          opacity: 0.42;
+        }
+      }
+
+      @keyframes level {
+        from {
+          height: 3px;
+        }
+        to {
+          height: 12px;
+        }
+      }
+
+      @keyframes cameraShift {
+        from {
+          transform: scale(1.04) translate(-2px, -1px);
+        }
+        to {
+          transform: scale(1.09) translate(3px, 2px);
+        }
+      }
+
+      @media (max-width: 820px) {
+        .page {
+          display: block;
+          padding: 0;
+          background: var(--paper-strong);
+        }
+
+        .phone {
+          width: 100%;
+          height: 100svh;
+          min-height: 620px;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+
+        .phone::before {
+          top: 10px;
+          width: 78px;
+          height: 24px;
+        }
+
+        .side-panel {
+          display: none;
+        }
+
+        .screen {
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+      }
+
+      @media (max-width: 380px) {
+        h1 {
+          font-size: 58px;
+        }
+
+        .recap h2 {
+          font-size: 50px;
+        }
+      }
+
+      @media (max-height: 710px) {
+        .phone {
+          min-height: 620px;
+        }
+
+        .precall-main {
+          gap: 18px;
+        }
+
+        h1 {
+          font-size: 54px;
+        }
+
+        .transcript-card {
+          bottom: 84px;
+          min-height: 64px;
+        }
+
+        .camera-tile {
+          width: 100px;
+          bottom: 91px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <main class="phone" aria-label="Deep Dive Interview prototype">
+        <section class="screen precall is-active" id="precallScreen">
+          <div class="precall-main">
+            <div class="brand-row">
+              <div class="mark" aria-hidden="true">D</div>
+              <div class="live-chip"><span class="dot"></span> Mock ready</div>
+            </div>
+
+            <div>
+              <h1>Deep Dive</h1>
+              <p class="subtitle">
+                Product engineering interview for Maya Chen, focused on shipped systems and
+                decision quality.
+              </p>
+            </div>
+
+            <div class="brief">
+              <div class="brief-title">Resume topics</div>
+              <div class="topic-row" aria-label="Deep dive topics">
+                <span class="topic-chip">Realtime collaboration</span>
+                <span class="topic-chip">Workflow automation</span>
+                <span class="topic-chip">Incident recovery</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="start-button" id="startButton">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.1 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.58 2.6a2 2 0 0 1-.45 2.11L8 9.68a16 16 0 0 0 6.32 6.32l1.25-1.25a2 2 0 0 1 2.11-.45c.83.26 1.7.46 2.6.58A2 2 0 0 1 22 16.92z" />
+            </svg>
+            Start interview
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </section>
+
+        <section class="screen call" id="callScreen" aria-live="polite">
+          <header class="call-header">
+            <div class="candidate">
+              <strong>Deep Dive Interview</strong>
+              <span>AI interviewer session</span>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+            <button class="icon-button" aria-label="Mute mock microphone" title="Mute">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <path d="M12 19v3" />
+              </svg>
+            </button>
+          </header>
+
+          <div class="feed-wrap">
+            <div class="feed" id="questionFeed"></div>
+          </div>
+
+          <aside class="transcript-card" aria-label="Live transcript">
+            <div class="label"><span class="pulse-dot"></span> Transcript</div>
+            <div id="transcriptText">Waiting for the first answer...</div>
+          </aside>
+
+          <div class="camera-tile" id="cameraTile" aria-label="Draggable candidate camera tile">
+            <div class="camera-noise"></div>
+            <div class="face" aria-hidden="true">
+              <div class="shoulders"></div>
+              <div class="head"></div>
+            </div>
+            <div class="camera-label">
+              <span>Maya Chen</span>
+              <span class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+          <nav class="call-controls" aria-label="Interview controls">
+            <button class="round-control" id="nextButton" aria-label="Generate mock follow-up" title="Follow-up">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6 17 5-5-5-5" />
+                <path d="m13 17 5-5-5-5" />
+              </svg>
+            </button>
+            <button class="round-control end-control" id="endButton" aria-label="End interview" title="End">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10.68 13.31a16 16 0 0 0 6.01 0l1.47 2.93a2 2 0 0 1-.45 2.33l-1.18 1.18a2 2 0 0 1-2.24.38 20.3 20.3 0 0 1-8.43-8.43 2 2 0 0 1 .38-2.24l1.18-1.18a2 2 0 0 1 2.33-.45l2.93 1.47z" />
+                <path d="M4 5c4.8-3.2 11.2-3.2 16 0" />
+              </svg>
+            </button>
+            <button class="round-control" id="pauseButton" aria-label="Pause mock stream" title="Pause">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14" />
+                <path d="M16 5v14" />
+              </svg>
+            </button>
+          </nav>
+        </section>
+
+        <section class="screen recap" id="recapScreen">
+          <header class="recap-header">
+            <div class="live-chip"><span class="dot"></span> Recording saved</div>
+            <h2>Interview captured</h2>
+          </header>
+
+          <div class="recap-grid">
+            <article class="player-card" aria-label="Mock recording preview">
+              <div class="player-visual">
+                <button class="play-button" aria-label="Play mock recording">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m8 5 11 7-11 7z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="timeline">
+                <div class="track"><span></span></div>
+                <div class="candidate">
+                  <strong id="finalDuration">00:00 captured</strong>
+                  <span>Video, audio, transcript, and question trail</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="summary-card" aria-label="Interview summary">
+              <div><strong id="askedCount">0</strong><span>Asked</span></div>
+              <div><strong>3</strong><span>Topics</span></div>
+              <div><strong>1</strong><span>Clip</span></div>
+            </article>
+          </div>
+
+          <button class="restart-button" id="restartButton">Run prototype again</button>
+        </section>
+      </main>
+
+      <aside class="side-panel" aria-label="Prototype interview plan">
+        <section class="panel-card">
+          <div class="panel-section">
+            <div class="panel-kicker">Interview plan</div>
+            <div class="panel-title">Question feed replaces the remote caller.</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-kicker">Deep dive topics</div>
+            <div class="topic-list">
+              <div class="topic-item">Realtime collaboration architecture from the resume project.</div>
+              <div class="topic-item">Automation decisions, ownership, and quality controls.</div>
+              <div class="topic-item">Incident recovery, debugging, and production judgment.</div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-kicker">Mock capture</div>
+            <div class="status-grid">
+              <span class="metric-chip">Video</span>
+              <span class="metric-chip">Audio</span>
+              <span class="metric-chip">Transcript</span>
+              <span class="metric-chip">Follow-ups</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <script>
+      const screens = {
+        precall: document.querySelector("#precallScreen"),
+        call: document.querySelector("#callScreen"),
+        recap: document.querySelector("#recapScreen"),
+      };
+
+      const startButton = document.querySelector("#startButton");
+      const endButton = document.querySelector("#endButton");
+      const restartButton = document.querySelector("#restartButton");
+      const nextButton = document.querySelector("#nextButton");
+      const pauseButton = document.querySelector("#pauseButton");
+      const feed = document.querySelector("#questionFeed");
+      const timer = document.querySelector("#timer");
+      const transcriptText = document.querySelector("#transcriptText");
+      const askedCount = document.querySelector("#askedCount");
+      const finalDuration = document.querySelector("#finalDuration");
+      const cameraTile = document.querySelector("#cameraTile");
+
+      const script = [
+        {
+          type: "question",
+          label: "Opening",
+          text: "Walk me through the most technically complex product you shipped recently.",
+          transcript:
+            "I led a collaboration workspace where multiple users could edit operational plans at the same time...",
+        },
+        {
+          type: "followup",
+          label: "Follow-up",
+          text: "What was the hardest consistency tradeoff you made, and how did you know it was acceptable?",
+          transcript:
+            "The hardest part was choosing where strict ordering mattered. We kept presence lightweight but made plan state authoritative...",
+        },
+        {
+          type: "question",
+          label: "Resume deep dive",
+          text: "Your resume mentions workflow automation. Pick one automation and explain the failure modes you designed around.",
+          transcript:
+            "The workflow touched approvals and notifications, so the biggest issue was duplicate sends and unclear retry behavior...",
+        },
+        {
+          type: "followup",
+          label: "Follow-up",
+          text: "When that automation failed in production, what signal told you where to look first?",
+          transcript:
+            "I started with job id correlation across queue logs, then compared expected state transitions with what actually fired...",
+        },
+        {
+          type: "question",
+          label: "Incident recovery",
+          text: "Tell me about a time you had to debug a live incident under pressure. What did you do in the first ten minutes?",
+          transcript:
+            "I split the work into containment and diagnosis, paused the affected job, and asked one engineer to preserve evidence...",
+        },
+      ];
+
+      let stepIndex = 0;
+      let asked = 0;
+      let seconds = 0;
+      let timerId = null;
+      let streamId = null;
+      let paused = false;
+      let streaming = false;
+
+      function showScreen(name) {
+        Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
+        screens[name].classList.add("is-active");
+      }
+
+      function formatTime(value) {
+        const minutes = Math.floor(value / 60)
+          .toString()
+          .padStart(2, "0");
+        const secs = (value % 60).toString().padStart(2, "0");
+        return `${minutes}:${secs}`;
+      }
+
+      function beginTimer() {
+        clearInterval(timerId);
+        seconds = 0;
+        timer.textContent = "00:00";
+        timerId = setInterval(() => {
+          seconds += 1;
+          timer.textContent = formatTime(seconds);
+        }, 1000);
+      }
+
+      function addBubble(item) {
+        const bubble = document.createElement("article");
+        bubble.className = `bubble ${item.type}`;
+
+        if (item.type === "system") {
+          bubble.textContent = item.text;
+          feed.appendChild(bubble);
+          feed.scrollTop = feed.scrollHeight;
+          return Promise.resolve();
+        }
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.innerHTML = `<span>${item.label}</span><span>AI interviewer</span>`;
+
+        const body = document.createElement("p");
+        const cursor = document.createElement("span");
+        cursor.className = "cursor";
+
+        bubble.append(meta, body);
+        body.append(cursor);
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+
+        return typeText(body, cursor, item.text, item.type === "question" ? 24 : 18).then(() => {
+          cursor.remove();
+          if (item.type !== "system") {
+            asked += 1;
+            askedCount.textContent = asked;
+          }
+        });
+      }
+
+      function typeText(node, cursor, text, speed) {
+        streaming = true;
+        return new Promise((resolve) => {
+          let i = 0;
+          const tick = () => {
+            if (paused) {
+              streamId = setTimeout(tick, 140);
+              return;
+            }
+
+            node.textContent = text.slice(0, i);
+            node.append(cursor);
+            feed.scrollTop = feed.scrollHeight;
+            i += 1;
+
+            if (i <= text.length) {
+              streamId = setTimeout(tick, speed + Math.random() * 18);
+            } else {
+              streaming = false;
+              resolve();
+            }
+          };
+          tick();
+        });
+      }
+
+      function setTranscript(text) {
+        transcriptText.textContent = "";
+        let i = 0;
+        const write = () => {
+          if (paused) {
+            setTimeout(write, 140);
+            return;
+          }
+          transcriptText.textContent = text.slice(0, i);
+          i += 2;
+          if (i <= text.length + 2) {
+            setTimeout(write, 24);
+          }
+        };
+        write();
+      }
+
+      async function runStep() {
+        if (stepIndex >= script.length || streaming) return;
+        const item = script[stepIndex];
+        stepIndex += 1;
+        setTranscript(item.transcript);
+        await addBubble(item);
+
+        const nextDelay = item.type === "system" ? 700 : item.type === "followup" ? 4600 : 5200;
+        clearTimeout(streamId);
+        streamId = setTimeout(runStep, nextDelay);
+      }
+
+      function startCall() {
+        feed.innerHTML = "";
+        stepIndex = 0;
+        asked = 0;
+        paused = false;
+        askedCount.textContent = "0";
+        transcriptText.textContent = "Waiting for the first answer...";
+        showScreen("call");
+        beginTimer();
+        runStep();
+      }
+
+      function endCall() {
+        clearInterval(timerId);
+        clearTimeout(streamId);
+        finalDuration.textContent = `${formatTime(seconds)} captured`;
+        showScreen("recap");
+      }
+
+      function restart() {
+        clearInterval(timerId);
+        clearTimeout(streamId);
+        showScreen("precall");
+      }
+
+      startButton.addEventListener("click", startCall);
+      endButton.addEventListener("click", endCall);
+      restartButton.addEventListener("click", restart);
+
+      nextButton.addEventListener("click", () => {
+        if (stepIndex < script.length && !streaming) {
+          clearTimeout(streamId);
+          runStep();
+        }
+      });
+
+      pauseButton.addEventListener("click", () => {
+        paused = !paused;
+        pauseButton.setAttribute("aria-label", paused ? "Resume mock stream" : "Pause mock stream");
+        pauseButton.innerHTML = paused
+          ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"></path></svg>'
+          : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14"></path><path d="M16 5v14"></path></svg>';
+      });
+
+      function enableCameraDrag() {
+        let active = false;
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        cameraTile.addEventListener("pointerdown", (event) => {
+          active = true;
+          cameraTile.setPointerCapture(event.pointerId);
+          const rect = cameraTile.getBoundingClientRect();
+          const parentRect = cameraTile.offsetParent.getBoundingClientRect();
+          startX = event.clientX;
+          startY = event.clientY;
+          startLeft = rect.left - parentRect.left;
+          startTop = rect.top - parentRect.top;
+        });
+
+        cameraTile.addEventListener("pointermove", (event) => {
+          if (!active) return;
+          const parentRect = cameraTile.offsetParent.getBoundingClientRect();
+          const tileRect = cameraTile.getBoundingClientRect();
+          const nextLeft = startLeft + event.clientX - startX;
+          const nextTop = startTop + event.clientY - startY;
+          const clampedLeft = Math.max(10, Math.min(nextLeft, parentRect.width - tileRect.width - 10));
+          const clampedTop = Math.max(68, Math.min(nextTop, parentRect.height - tileRect.height - 92));
+
+          cameraTile.style.left = `${clampedLeft}px`;
+          cameraTile.style.top = `${clampedTop}px`;
+          cameraTile.style.right = "auto";
+          cameraTile.style.bottom = "auto";
+        });
+
+        cameraTile.addEventListener("pointerup", () => {
+          active = false;
+        });
+
+        cameraTile.addEventListener("pointercancel", () => {
+          active = false;
+        });
+      }
+
+      enableCameraDrag();
+    </script>
+  </body>
+</html>
