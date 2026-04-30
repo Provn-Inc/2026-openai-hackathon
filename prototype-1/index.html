@@ -600,6 +600,81 @@
         gap: 12px;
       }
 
+      .analysis-card {
+        display: grid;
+        gap: 18px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 10px 24px oklch(26% 0.024 250 / 0.08);
+      }
+
+      .progress-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .progress-value {
+        font-size: 32px;
+        font-weight: 860;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .analysis-copy {
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.42;
+      }
+
+      .clip-progress {
+        height: 12px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--field);
+      }
+
+      .clip-progress span {
+        display: block;
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--olive), var(--gold), var(--clay));
+        transition: width 260ms var(--ease);
+      }
+
+      .analysis-steps {
+        display: grid;
+        gap: 9px;
+      }
+
+      .analysis-step {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 720;
+      }
+
+      .analysis-step::before {
+        content: "";
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--line);
+      }
+
+      .analysis-step.is-active {
+        color: var(--ink);
+      }
+
+      .analysis-step.is-active::before {
+        background: var(--olive);
+        box-shadow: 0 0 0 5px color-mix(in oklch, var(--olive), transparent 80%);
+      }
+
       .summary-card,
       .player-card {
         border: 1px solid var(--line);
@@ -618,6 +693,23 @@
         background:
           linear-gradient(135deg, oklch(18% 0.024 250), oklch(28% 0.075 143)),
           oklch(18% 0.024 250);
+      }
+
+      .clip-visual {
+        height: 190px;
+      }
+
+      .clip-visual::before {
+        content: "30 min";
+        position: absolute;
+        left: 12px;
+        top: 12px;
+        padding: 6px 9px;
+        border-radius: 999px;
+        background: oklch(100% 0 0 / 0.9);
+        color: var(--ink);
+        font-size: 12px;
+        font-weight: 840;
       }
 
       .play-button {
@@ -687,6 +779,57 @@
         background: var(--ink);
         color: var(--paper-strong);
         font-weight: 820;
+      }
+
+      .refine-card {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 10px 24px oklch(26% 0.024 250 / 0.08);
+      }
+
+      .refine-card label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 840;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .refine-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+      }
+
+      .refine-row input {
+        min-width: 0;
+        min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--field);
+        color: var(--ink);
+        font: inherit;
+        padding: 0 12px;
+      }
+
+      .refine-row button {
+        min-height: 44px;
+        padding: 0 13px;
+        border-radius: var(--radius);
+        background: var(--olive-dark);
+        color: var(--paper-strong);
+        font-weight: 820;
+      }
+
+      .refine-status {
+        min-height: 18px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.3;
       }
 
       .side-panel {
@@ -1007,15 +1150,43 @@
           </nav>
         </section>
 
-        <section class="screen recap" id="recapScreen">
+        <section class="screen recap" id="generatingScreen">
           <header class="recap-header">
-            <div class="live-chip"><span class="dot"></span> Recording saved</div>
-            <h2>Interview captured</h2>
+            <div class="live-chip"><span class="dot"></span> Analyzing recording</div>
+            <h2>Generating clip</h2>
           </header>
 
           <div class="recap-grid">
-            <article class="player-card" aria-label="Mock recording preview">
-              <div class="player-visual">
+            <article class="analysis-card" aria-label="Clip generation progress">
+              <div class="progress-head">
+                <div>
+                  <div class="panel-kicker">Hiring manager cut</div>
+                  <p class="analysis-copy" id="clipStep">
+                    Finding the clearest technical proof points from the interview.
+                  </p>
+                </div>
+                <strong class="progress-value" id="clipPercent">0%</strong>
+              </div>
+              <div class="clip-progress" aria-hidden="true"><span id="clipProgress"></span></div>
+              <div class="analysis-steps">
+                <div class="analysis-step is-active" data-step="0">Reading transcript for signal</div>
+                <div class="analysis-step" data-step="1">Scoring video moments</div>
+                <div class="analysis-step" data-step="2">Assembling the 30-minute clip</div>
+                <div class="analysis-step" data-step="3">Rendering preview</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="screen recap" id="clipScreen">
+          <header class="recap-header">
+            <div class="live-chip"><span class="dot"></span> Clip generated</div>
+            <h2>Preview clip</h2>
+          </header>
+
+          <div class="recap-grid">
+            <article class="player-card" aria-label="Generated clip preview">
+              <div class="player-visual clip-visual">
                 <button class="play-button" aria-label="Play mock recording">
                   <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path d="m8 5 11 7-11 7z" />
@@ -1025,8 +1196,8 @@
               <div class="timeline">
                 <div class="track"><span></span></div>
                 <div class="candidate">
-                  <strong id="finalDuration">00:00 captured</strong>
-                  <span>Video, audio, transcript, and question trail</span>
+                  <strong id="finalDuration">00:00 source interview</strong>
+                  <span>Best technical depth moments for hiring managers</span>
                 </div>
               </div>
             </article>
@@ -1036,6 +1207,21 @@
               <div><strong>3</strong><span>Topics</span></div>
               <div><strong>1</strong><span>Clip</span></div>
             </article>
+
+            <form class="refine-card" id="refineForm">
+              <label for="refineInput">Refine this clip</label>
+              <div class="refine-row">
+                <input
+                  id="refineInput"
+                  autocomplete="off"
+                  placeholder="More architecture depth, tighter intro..."
+                />
+                <button type="submit">Refine</button>
+              </div>
+              <div class="refine-status" id="refineStatus">
+                Prompt the editor to reshape the cut before sharing.
+              </div>
+            </form>
           </div>
 
           <button class="restart-button" id="restartButton">Run prototype again</button>
@@ -1073,7 +1259,8 @@
       const screens = {
         precall: document.querySelector("#precallScreen"),
         call: document.querySelector("#callScreen"),
-        recap: document.querySelector("#recapScreen"),
+        generating: document.querySelector("#generatingScreen"),
+        clip: document.querySelector("#clipScreen"),
       };
 
       const startButton = document.querySelector("#startButton");
@@ -1087,6 +1274,12 @@
       const askedCount = document.querySelector("#askedCount");
       const finalDuration = document.querySelector("#finalDuration");
       const cameraTile = document.querySelector("#cameraTile");
+      const clipPercent = document.querySelector("#clipPercent");
+      const clipProgress = document.querySelector("#clipProgress");
+      const clipStep = document.querySelector("#clipStep");
+      const refineForm = document.querySelector("#refineForm");
+      const refineInput = document.querySelector("#refineInput");
+      const refineStatus = document.querySelector("#refineStatus");
 
       const script = [
         {
@@ -1131,8 +1324,15 @@
       let seconds = 0;
       let timerId = null;
       let streamId = null;
+      let clipTimerId = null;
       let paused = false;
       let streaming = false;
+      const generationSteps = [
+        "Reading the transcript for clear ownership, specificity, and decision quality.",
+        "Matching strong answers to video moments with clean audio and confident delivery.",
+        "Assembling a 30-minute hiring manager clip around the strongest proof points.",
+        "Rendering the preview and preparing refinement controls.",
+      ];
 
       function showScreen(name) {
         Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
@@ -1260,19 +1460,61 @@
       function endCall() {
         clearInterval(timerId);
         clearTimeout(streamId);
-        finalDuration.textContent = `${formatTime(seconds)} captured`;
-        showScreen("recap");
+        finalDuration.textContent = `${formatTime(seconds)} source interview`;
+        showScreen("generating");
+        beginClipGeneration();
       }
 
       function restart() {
         clearInterval(timerId);
         clearTimeout(streamId);
+        clearInterval(clipTimerId);
+        clipPercent.textContent = "0%";
+        clipProgress.style.width = "0%";
+        clipStep.textContent = generationSteps[0];
+        refineInput.value = "";
+        refineStatus.textContent = "Prompt the editor to reshape the cut before sharing.";
         showScreen("precall");
+      }
+
+      function beginClipGeneration() {
+        clearInterval(clipTimerId);
+        let progress = 0;
+        clipPercent.textContent = "0%";
+        clipProgress.style.width = "0%";
+        clipStep.textContent = generationSteps[0];
+        document.querySelectorAll(".analysis-step").forEach((step, index) => {
+          step.classList.toggle("is-active", index === 0);
+        });
+
+        clipTimerId = setInterval(() => {
+          progress = Math.min(100, progress + 4 + Math.floor(Math.random() * 7));
+          const stepIndex = Math.min(3, Math.floor(progress / 26));
+          clipPercent.textContent = `${progress}%`;
+          clipProgress.style.width = `${progress}%`;
+          clipStep.textContent = generationSteps[stepIndex];
+          document.querySelectorAll(".analysis-step").forEach((step, index) => {
+            step.classList.toggle("is-active", index <= stepIndex);
+          });
+
+          if (progress >= 100) {
+            clearInterval(clipTimerId);
+            setTimeout(() => showScreen("clip"), 650);
+          }
+        }, 260);
       }
 
       startButton.addEventListener("click", startCall);
       endButton.addEventListener("click", endCall);
       restartButton.addEventListener("click", restart);
+
+      refineForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const prompt = refineInput.value.trim();
+        refineStatus.textContent = prompt
+          ? `Refining mock clip around: "${prompt}"`
+          : "Try asking for a tighter intro, more depth, or less filler.";
+      });
 
       nextButton.addEventListener("click", () => {
         if (stepIndex < script.length && !streaming) {
