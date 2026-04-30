@@ -1,0 +1,1806 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Deep Dive Interview Prototype 4</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: oklch(96% 0.018 84);
+        --paper-strong: oklch(99% 0.008 84);
+        --ink: oklch(17% 0.03 252);
+        --muted: oklch(45% 0.035 248);
+        --line: oklch(84% 0.022 80);
+        --field: oklch(92% 0.018 78);
+        --olive: oklch(52% 0.11 145);
+        --olive-dark: oklch(30% 0.09 149);
+        --gold: oklch(78% 0.14 82);
+        --clay: oklch(62% 0.14 38);
+        --red: oklch(57% 0.22 28);
+        --blue: oklch(49% 0.16 246);
+        --plum: oklch(39% 0.11 315);
+        --shadow: 0 1.25rem 3rem oklch(21% 0.03 255 / 0.18);
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --radius: 0.5rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family:
+          "Avenir Next", "SF Pro Display", "Segoe UI Variable", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 12% 12%, oklch(88% 0.055 83 / 0.54), transparent 26rem),
+          radial-gradient(circle at 85% 72%, oklch(83% 0.05 150 / 0.36), transparent 24rem),
+          linear-gradient(90deg, oklch(89% 0.018 84 / 0.4) 1px, transparent 1px),
+          linear-gradient(0deg, oklch(89% 0.018 84 / 0.4) 1px, transparent 1px),
+          var(--paper);
+        background-size:
+          auto,
+          auto,
+          1.75rem 1.75rem,
+          1.75rem 1.75rem;
+        letter-spacing: 0;
+      }
+
+      button {
+        border: 0;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid color-mix(in oklch, var(--blue), white 24%);
+        outline-offset: 3px;
+      }
+
+      .page {
+        min-height: 100svh;
+        display: block;
+        padding: 0;
+        background: var(--paper-strong);
+      }
+
+      .phone {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        height: 100svh;
+        min-height: 38.75rem;
+        border: 0;
+        border-radius: 0;
+        background: var(--paper-strong);
+        box-shadow: none;
+        isolation: isolate;
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        top: 0.625rem;
+        left: 50%;
+        width: 4.875rem;
+        height: 1.5rem;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: oklch(14% 0.02 250);
+        z-index: 9;
+      }
+
+      .screen {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: max(1.75rem, env(safe-area-inset-top)) 0.875rem
+          max(1rem, env(safe-area-inset-bottom));
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(14px) scale(0.985);
+        transition:
+          opacity 420ms var(--ease),
+          transform 420ms var(--ease);
+      }
+
+      .screen.is-active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+
+      .precall {
+        grid-template-rows: 1fr auto;
+        padding: max(3.25rem, env(safe-area-inset-top)) 1.125rem
+          max(1.25rem, env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, oklch(99% 0.008 84 / 0.95), oklch(93% 0.025 87 / 0.94)),
+          repeating-linear-gradient(
+            135deg,
+            transparent 0 0.875rem,
+            oklch(86% 0.02 83 / 0.5) 0.875rem 0.9375rem
+          );
+      }
+
+      .precall-main {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1.375rem;
+      }
+
+      .brand-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.875rem;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 800;
+      }
+
+      .live-chip,
+      .topic-chip,
+      .metric-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4375rem;
+        min-height: 2.25rem;
+        padding: 0.4375rem 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: oklch(99% 0.006 85 / 0.82);
+        font-size: 0.875rem;
+        font-weight: 750;
+        color: var(--muted);
+      }
+
+      .dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--red);
+        box-shadow: 0 0 0 4px color-mix(in oklch, var(--red), transparent 78%);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 8.5ch;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 3.75rem;
+        line-height: 1.02;
+        letter-spacing: 0;
+        font-weight: 800;
+        margin-bottom: 0.625rem;
+      }
+
+      .subtitle {
+        max-width: 30ch;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .brief {
+        display: grid;
+        gap: 0.625rem;
+        padding: 0.875rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background:
+          linear-gradient(135deg, color-mix(in oklch, var(--paper-strong), var(--gold) 10%), var(--paper-strong));
+      }
+
+      .brief-title {
+        font-size: 0.875rem;
+        color: var(--muted);
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .topic-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .topic-chip:nth-child(2) {
+        background: color-mix(in oklch, var(--paper-strong), var(--olive) 13%);
+      }
+
+      .topic-chip:nth-child(3) {
+        background: color-mix(in oklch, var(--paper-strong), var(--clay) 13%);
+      }
+
+      .start-button {
+        display: grid;
+        grid-template-columns: 1.375rem 1fr 1.125rem;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        min-height: 3.75rem;
+        padding: 0 1rem;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper-strong);
+        font-weight: 820;
+        box-shadow: 0 12px 30px oklch(18% 0.025 250 / 0.22);
+        transition:
+          transform 180ms var(--ease),
+          background 180ms var(--ease);
+      }
+
+      .start-button:active {
+        transform: translateY(1px) scale(0.99);
+      }
+
+      .call {
+        padding-inline: 0.75rem;
+        background:
+          linear-gradient(180deg, oklch(99% 0.008 84) 0%, oklch(94% 0.018 83) 72%),
+          var(--paper-strong);
+      }
+
+      .call-header {
+        position: relative;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1.125rem 0.125rem 0.875rem;
+      }
+
+      .candidate {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .candidate strong {
+        font-size: 1rem;
+      }
+
+      .candidate span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 650;
+      }
+
+      .timer {
+        min-width: 4.625rem;
+        text-align: center;
+        padding: 0.5rem 0.6875rem;
+        border-radius: 999px;
+        background: oklch(100% 0 0 / 0.84);
+        border: 1px solid var(--line);
+        font-size: 0.875rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+      }
+
+      .icon-button {
+        display: grid;
+        place-items: center;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.84);
+        border: 1px solid var(--line);
+      }
+
+      .feed-wrap {
+        position: relative;
+        min-height: 0;
+        padding: 0.5rem 0 13.5rem;
+      }
+
+      .feed {
+        position: absolute;
+        inset: 0 0 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+        padding: 0.375rem 0.125rem 13.5rem;
+        scrollbar-width: none;
+      }
+
+      .feed::-webkit-scrollbar {
+        display: none;
+      }
+
+      .bubble {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 0.75rem;
+        padding: 1rem 1rem 0.875rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--paper-strong);
+        box-shadow: 0 0.5rem 1.375rem oklch(26% 0.024 250 / 0.08);
+        transform-origin: left top;
+        animation: arrive 420ms var(--ease) both;
+      }
+
+      .bubble.question {
+        background:
+          linear-gradient(135deg, oklch(19% 0.028 252), oklch(25% 0.045 250));
+        color: var(--paper-strong);
+        border-color: transparent;
+      }
+
+      .bubble.followup {
+        background:
+          linear-gradient(135deg, oklch(19% 0.028 252), color-mix(in oklch, var(--olive-dark), var(--ink) 28%));
+        color: var(--paper-strong);
+        border-color: transparent;
+      }
+
+      .bubble.system {
+        max-width: 100%;
+        margin-inline: auto;
+        padding: 0.5rem 0.625rem;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .bubble p {
+        font-size: 1.0625rem;
+        line-height: 1.42;
+        letter-spacing: 0;
+      }
+
+      .bubble .meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.625rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 820;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        opacity: 0.74;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 0.4375rem;
+        height: 1.05em;
+        margin-left: 0.125rem;
+        vertical-align: -0.14em;
+        background: currentColor;
+        animation: blink 900ms steps(2, start) infinite;
+      }
+
+      .transcript-card {
+        position: absolute;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 5.75rem;
+        z-index: 4;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 0.4375rem;
+        height: 7rem;
+        overflow: hidden;
+        padding: 0.75rem;
+        border: 1px solid color-mix(in oklch, var(--line), var(--olive) 12%);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.92);
+        box-shadow: 0 0.875rem 2.125rem oklch(24% 0.03 250 / 0.13);
+        backdrop-filter: blur(1rem);
+      }
+
+      .transcript-card .label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 820;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .pulse-dot {
+        width: 0.4375rem;
+        height: 0.4375rem;
+        border-radius: 50%;
+        background: var(--olive);
+        animation: pulse 1200ms ease-in-out infinite;
+      }
+
+      #transcriptText {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 0.25rem;
+        color: var(--ink);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        scrollbar-width: thin;
+      }
+
+      .camera-tile {
+        position: absolute;
+        right: 0.75rem;
+        bottom: 13.75rem;
+        z-index: 6;
+        width: 7.25rem;
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border: 2px solid oklch(100% 0 0 / 0.86);
+        border-radius: var(--radius);
+        background: oklch(17% 0.025 244);
+        box-shadow: 0 0.875rem 1.75rem oklch(20% 0.04 250 / 0.34);
+        touch-action: none;
+        user-select: none;
+        cursor: grab;
+      }
+
+      .camera-tile:active {
+        cursor: grabbing;
+      }
+
+      .camera-noise {
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            oklch(100% 0 0 / 0.05) 0 1px,
+            transparent 1px 0.25rem
+          ),
+          linear-gradient(150deg, oklch(50% 0.11 244 / 0.52), transparent 44%),
+          linear-gradient(25deg, oklch(72% 0.13 41 / 0.42), transparent 54%);
+        animation: cameraShift 5400ms ease-in-out infinite alternate;
+      }
+
+      .face {
+        position: absolute;
+        left: 50%;
+        top: 46%;
+        width: 3.625rem;
+        height: 4.75rem;
+        transform: translate(-50%, -50%);
+      }
+
+      .head {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 2.125rem;
+        height: 2.375rem;
+        transform: translateX(-50%);
+        border-radius: 46% 46% 44% 44%;
+        background: oklch(83% 0.065 65);
+      }
+
+      .shoulders {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 4.25rem;
+        height: 2.5rem;
+        transform: translateX(-50%);
+        border-radius: 50% 50% 10px 10px;
+        background: color-mix(in oklch, var(--olive-dark), black 10%);
+      }
+
+      .camera-label {
+        position: absolute;
+        left: 0.4375rem;
+        right: 0.4375rem;
+        bottom: 0.4375rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.375rem;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 820;
+      }
+
+      .meter {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.125rem;
+        height: 0.75rem;
+      }
+
+      .meter i {
+        width: 0.1875rem;
+        min-height: 0.1875rem;
+        border-radius: 999px;
+        background: var(--gold);
+        animation: level 600ms ease-in-out infinite alternate;
+      }
+
+      .meter i:nth-child(2) {
+        animation-delay: 120ms;
+      }
+
+      .meter i:nth-child(3) {
+        animation-delay: 240ms;
+      }
+
+      .meter i:nth-child(4) {
+        animation-delay: 80ms;
+      }
+
+      .call-controls {
+        position: absolute;
+        left: 50%;
+        bottom: 1.5rem;
+        z-index: 7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        transform: translateX(-50%);
+      }
+
+      .round-control {
+        display: grid;
+        place-items: center;
+        min-width: 3rem;
+        min-height: 3rem;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.88);
+        border: 1px solid var(--line);
+        box-shadow: 0 0.625rem 1.5rem oklch(23% 0.03 250 / 0.14);
+      }
+
+      .end-control {
+        width: 3.875rem;
+        height: 3.875rem;
+        color: white;
+        background: var(--red);
+        border-color: transparent;
+        box-shadow: 0 0.75rem 1.75rem color-mix(in oklch, var(--red), transparent 56%);
+      }
+
+      .recap {
+        grid-template-rows: auto 1fr auto;
+        padding: max(3.25rem, env(safe-area-inset-top)) 1.125rem
+          max(1.25rem, env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, oklch(99% 0.006 85), oklch(94% 0.018 82)),
+          var(--paper);
+      }
+
+      .recap-header {
+        display: grid;
+        gap: 0.75rem;
+        padding-top: 0.875rem;
+      }
+
+      .recap h2 {
+        max-width: 9ch;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 3.375rem;
+        line-height: 0.92;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .recap-grid {
+        align-self: center;
+        display: grid;
+        gap: 0.875rem;
+      }
+
+      .analysis-card {
+        display: grid;
+        gap: 1.125rem;
+        padding: 1.125rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .progress-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .progress-value {
+        font-size: 2rem;
+        font-weight: 860;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .analysis-copy {
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.45;
+      }
+
+      .clip-progress {
+        height: 0.75rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--field);
+      }
+
+      .clip-progress span {
+        display: block;
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--olive), var(--gold), var(--clay));
+        transition: width 260ms var(--ease);
+      }
+
+      .analysis-steps {
+        display: grid;
+        gap: 0.5625rem;
+      }
+
+      .analysis-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5625rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 720;
+      }
+
+      .analysis-step::before {
+        content: "";
+        width: 0.5625rem;
+        height: 0.5625rem;
+        border-radius: 50%;
+        background: var(--line);
+      }
+
+      .analysis-step.is-active {
+        color: var(--ink);
+      }
+
+      .analysis-step.is-active::before {
+        background: var(--olive);
+        box-shadow: 0 0 0 5px color-mix(in oklch, var(--olive), transparent 80%);
+      }
+
+      .summary-card,
+      .player-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .player-card {
+        overflow: hidden;
+      }
+
+      .player-visual {
+        position: relative;
+        height: 10rem;
+        background:
+          linear-gradient(135deg, oklch(18% 0.024 250), oklch(28% 0.075 143) 52%, var(--plum)),
+          oklch(18% 0.024 250);
+      }
+
+      .clip-visual {
+        height: 12rem;
+      }
+
+      .clip-visual::before {
+        content: "30 min";
+        position: absolute;
+        left: 0.75rem;
+        top: 0.75rem;
+        padding: 0.375rem 0.5625rem;
+        border-radius: 999px;
+        background: oklch(100% 0 0 / 0.9);
+        color: var(--ink);
+        font-size: 0.875rem;
+        font-weight: 840;
+      }
+
+      .play-button {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: auto;
+        min-width: 3.625rem;
+        min-height: 3.625rem;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.92);
+      }
+
+      .timeline {
+        display: grid;
+        gap: 0.5rem;
+        padding: 0.75rem;
+      }
+
+      .track {
+        height: 0.5625rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--field);
+      }
+
+      .track span {
+        display: block;
+        width: 68%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--olive), var(--gold), var(--clay));
+      }
+
+      .summary-card {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        overflow: hidden;
+        background: var(--line);
+      }
+
+      .summary-card div {
+        display: grid;
+        gap: 5px;
+        padding: 0.8125rem 0.625rem;
+        background: var(--paper-strong);
+      }
+
+      .summary-card strong {
+        font-size: 1.375rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .summary-card span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 740;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .restart-button {
+        width: 100%;
+        min-height: 3.375rem;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper-strong);
+        font-weight: 820;
+      }
+
+      .refine-card {
+        display: grid;
+        gap: 0.625rem;
+        padding: 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .refine-card label {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 840;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .refine-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem;
+      }
+
+      .refine-row input {
+        min-width: 0;
+        min-height: 2.75rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--field);
+        color: var(--ink);
+        font: inherit;
+        padding: 0 0.75rem;
+      }
+
+      .refine-row button {
+        min-height: 2.75rem;
+        padding: 0 0.8125rem;
+        border-radius: var(--radius);
+        background: var(--olive-dark);
+        color: var(--paper-strong);
+        font-weight: 820;
+      }
+
+      .refine-status {
+        min-height: 1.125rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.3;
+      }
+
+      .side-panel {
+        align-self: stretch;
+        display: none;
+        align-content: center;
+        gap: 0.875rem;
+        max-width: 21.25rem;
+      }
+
+      .panel-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.84);
+        box-shadow: 0 0.75rem 2.125rem oklch(22% 0.03 250 / 0.08);
+        overflow: hidden;
+      }
+
+      .panel-section {
+        padding: 0.875rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-section:last-child {
+        border-bottom: 0;
+      }
+
+      .panel-kicker {
+        margin-bottom: 0.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 840;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .panel-title {
+        font-size: 1.75rem;
+        line-height: 1;
+        font-weight: 860;
+      }
+
+      .topic-list {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .topic-item {
+        display: grid;
+        grid-template-columns: 0.5625rem 1fr;
+        gap: 0.5625rem;
+        align-items: start;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.35;
+      }
+
+      .topic-item::before {
+        content: "";
+        width: 0.5625rem;
+        height: 0.5625rem;
+        margin-top: 0.3125rem;
+        border-radius: 50%;
+        background: var(--olive);
+      }
+
+      .topic-item:nth-child(2)::before {
+        background: var(--clay);
+      }
+
+      .topic-item:nth-child(3)::before {
+        background: var(--blue);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
+      .metric-chip {
+        justify-content: center;
+        border-radius: var(--radius);
+        min-height: 2.625rem;
+      }
+
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        stroke-width: 2.15;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.55);
+          opacity: 0.42;
+        }
+      }
+
+      @keyframes level {
+        from {
+          height: 3px;
+        }
+        to {
+          height: 12px;
+        }
+      }
+
+      @keyframes cameraShift {
+        from {
+          transform: scale(1.04) translate(-2px, -1px);
+        }
+        to {
+          transform: scale(1.09) translate(3px, 2px);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .page {
+          display: grid;
+          place-items: center;
+          padding: 1.5rem;
+          background: transparent;
+        }
+
+        .phone {
+          width: min(100%, 27rem);
+          height: min(53.75rem, calc(100svh - 3rem));
+          min-height: 43rem;
+          border: 1px solid oklch(80% 0.02 82);
+          border-radius: 2rem;
+          box-shadow: var(--shadow);
+        }
+
+        .phone::after {
+          content: "";
+          position: absolute;
+          inset: 0.625rem;
+          border: 1px solid oklch(100% 0 0 / 0.5);
+          border-radius: 1.5rem;
+          pointer-events: none;
+          z-index: 8;
+        }
+
+        h1 {
+          font-size: 4.25rem;
+        }
+
+        .recap h2 {
+          font-size: 3.75rem;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .page {
+          grid-template-columns: minmax(0, 27rem) minmax(18rem, 21.25rem);
+          gap: 2.25rem;
+          justify-content: center;
+        }
+
+        .side-panel {
+          display: grid;
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .page {
+          gap: 3rem;
+          padding: 2.25rem;
+        }
+      }
+
+      @media (max-height: 710px) {
+        .phone {
+          min-height: 38.75rem;
+        }
+
+        .precall-main {
+          gap: 1.125rem;
+        }
+
+        h1 {
+          font-size: 3.375rem;
+        }
+
+        .transcript-card {
+          bottom: 5.25rem;
+          height: 6.25rem;
+        }
+
+        .camera-tile {
+          width: 6.25rem;
+          bottom: 12.25rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <main class="phone" aria-label="Deep Dive Interview prototype">
+        <section class="screen precall is-active" id="precallScreen">
+          <div class="precall-main">
+            <div class="brand-row">
+              <div class="mark" aria-hidden="true">D</div>
+              <div class="live-chip"><span class="dot"></span> Prototype 4</div>
+            </div>
+
+            <div>
+              <h1>Deep Dive</h1>
+              <p class="subtitle">
+                Product engineering interview for Maya Chen, focused on shipped systems and
+                decision quality.
+              </p>
+            </div>
+          </div>
+
+          <button class="start-button" id="startButton">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.1 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.58 2.6a2 2 0 0 1-.45 2.11L8 9.68a16 16 0 0 0 6.32 6.32l1.25-1.25a2 2 0 0 1 2.11-.45c.83.26 1.7.46 2.6.58A2 2 0 0 1 22 16.92z" />
+            </svg>
+            Start interview
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </section>
+
+        <section class="screen call" id="callScreen" aria-live="polite">
+          <header class="call-header">
+            <div class="candidate">
+              <strong>Deep Dive Interview</strong>
+              <span>Realtime OpenAI session</span>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+            <button class="icon-button" id="headerMuteButton" aria-label="Mute microphone" title="Mute">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <path d="M12 19v3" />
+              </svg>
+            </button>
+          </header>
+
+          <div class="feed-wrap">
+            <div class="feed" id="questionFeed"></div>
+          </div>
+
+          <aside class="transcript-card" aria-label="Live transcript">
+            <div class="label"><span class="pulse-dot"></span> Transcript</div>
+            <div id="transcriptText" aria-live="polite"></div>
+          </aside>
+
+          <div class="camera-tile" id="cameraTile" aria-label="Draggable candidate camera tile">
+            <div class="camera-noise"></div>
+            <div class="face" aria-hidden="true">
+              <div class="shoulders"></div>
+              <div class="head"></div>
+            </div>
+            <div class="camera-label">
+              <span>Maya Chen</span>
+              <span class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+          <nav class="call-controls" aria-label="Interview controls">
+            <button class="round-control" id="nextButton" aria-label="Request follow-up now" title="Follow-up">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6 17 5-5-5-5" />
+                <path d="m13 17 5-5-5-5" />
+              </svg>
+            </button>
+            <button class="round-control end-control" id="endButton" aria-label="End interview" title="End">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10.68 13.31a16 16 0 0 0 6.01 0l1.47 2.93a2 2 0 0 1-.45 2.33l-1.18 1.18a2 2 0 0 1-2.24.38 20.3 20.3 0 0 1-8.43-8.43 2 2 0 0 1 .38-2.24l1.18-1.18a2 2 0 0 1 2.33-.45l2.93 1.47z" />
+                <path d="M4 5c4.8-3.2 11.2-3.2 16 0" />
+              </svg>
+            </button>
+            <button class="round-control" id="pauseButton" aria-label="Mute microphone" title="Mute">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14" />
+                <path d="M16 5v14" />
+              </svg>
+            </button>
+          </nav>
+        </section>
+
+        <section class="screen recap" id="generatingScreen">
+          <header class="recap-header">
+            <div class="live-chip"><span class="dot"></span> Analyzing recording</div>
+            <h2>Generating clip</h2>
+          </header>
+
+          <div class="recap-grid">
+            <article class="analysis-card" aria-label="Clip generation progress">
+              <div class="progress-head">
+                <div>
+                  <div class="panel-kicker">Hiring manager cut</div>
+                  <p class="analysis-copy" id="clipStep">
+                    Finding the clearest technical proof points from the interview.
+                  </p>
+                </div>
+                <strong class="progress-value" id="clipPercent">0%</strong>
+              </div>
+              <div class="clip-progress" aria-hidden="true"><span id="clipProgress"></span></div>
+              <div class="analysis-steps">
+                <div class="analysis-step is-active" data-step="0">Reading transcript for signal</div>
+                <div class="analysis-step" data-step="1">Scoring video moments</div>
+                <div class="analysis-step" data-step="2">Assembling the 30-minute clip</div>
+                <div class="analysis-step" data-step="3">Rendering preview</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="screen recap" id="clipScreen">
+          <header class="recap-header">
+            <div class="live-chip"><span class="dot"></span> Clip generated</div>
+            <h2>Preview clip</h2>
+          </header>
+
+          <div class="recap-grid">
+            <article class="player-card" aria-label="Generated clip preview">
+              <div class="player-visual clip-visual">
+                <button class="play-button" aria-label="Play recording">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m8 5 11 7-11 7z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="timeline">
+                <div class="track"><span></span></div>
+                <div class="candidate">
+                  <strong id="finalDuration">00:00 source interview</strong>
+              <span>Best technical depth moments for hiring managers</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="summary-card" aria-label="Interview summary">
+              <div><strong id="askedCount">0</strong><span>Asked</span></div>
+              <div><strong>3</strong><span>Topics</span></div>
+              <div><strong>1</strong><span>Clip</span></div>
+            </article>
+
+            <form class="refine-card" id="refineForm">
+              <label for="refineInput">Refine this clip</label>
+              <div class="refine-row">
+                <input
+                  id="refineInput"
+                  autocomplete="off"
+                  placeholder="More architecture depth, tighter intro..."
+                />
+                <button type="submit">Refine</button>
+              </div>
+              <div class="refine-status" id="refineStatus">
+                Prompt the editor to reshape the cut before sharing.
+              </div>
+            </form>
+          </div>
+
+          <button class="restart-button" id="restartButton">Run prototype again</button>
+        </section>
+      </main>
+
+      <aside class="side-panel" aria-label="Prototype interview plan">
+        <section class="panel-card">
+          <div class="panel-section">
+            <div class="panel-kicker">Interview plan</div>
+            <div class="panel-title">Question feed replaces the remote caller.</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-kicker">Deep dive topics</div>
+            <div class="topic-list">
+              <div class="topic-item">Realtime collaboration architecture from the resume project.</div>
+              <div class="topic-item">Automation decisions, ownership, and quality controls.</div>
+              <div class="topic-item">Incident recovery, debugging, and production judgment.</div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-kicker">Live capture</div>
+            <div class="status-grid">
+              <span class="metric-chip">Video</span>
+              <span class="metric-chip">Audio</span>
+              <span class="metric-chip">Transcript</span>
+              <span class="metric-chip">Follow-ups</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <script>
+      const screens = {
+        precall: document.querySelector("#precallScreen"),
+        call: document.querySelector("#callScreen"),
+        generating: document.querySelector("#generatingScreen"),
+        clip: document.querySelector("#clipScreen"),
+      };
+
+      const startButton = document.querySelector("#startButton");
+      const endButton = document.querySelector("#endButton");
+      const restartButton = document.querySelector("#restartButton");
+      const nextButton = document.querySelector("#nextButton");
+      const pauseButton = document.querySelector("#pauseButton");
+      const headerMuteButton = document.querySelector("#headerMuteButton");
+      const feed = document.querySelector("#questionFeed");
+      const timer = document.querySelector("#timer");
+      const transcriptText = document.querySelector("#transcriptText");
+      const askedCount = document.querySelector("#askedCount");
+      const finalDuration = document.querySelector("#finalDuration");
+      const cameraTile = document.querySelector("#cameraTile");
+      const clipPercent = document.querySelector("#clipPercent");
+      const clipProgress = document.querySelector("#clipProgress");
+      const clipStep = document.querySelector("#clipStep");
+      const refineForm = document.querySelector("#refineForm");
+      const refineInput = document.querySelector("#refineInput");
+      const refineStatus = document.querySelector("#refineStatus");
+
+      const micIcon =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg>';
+      const mutedIcon =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 5 2.24"></path><path d="M19 10v2a7 7 0 0 1-.7 3.06"></path><path d="M5 10v2a7 7 0 0 0 9.35 6.6"></path><path d="M12 19v3"></path><path d="m3 3 18 18"></path></svg>';
+      const openingQuestion = "Tell me a bit about yourself.";
+
+      let asked = 0;
+      let seconds = 0;
+      let timerId = null;
+      let clipTimerId = null;
+      let isConnecting = false;
+      let isMuted = false;
+      let realtime = createRealtimeState();
+
+      const generationSteps = [
+        "Reading the transcript for clear ownership, specificity, and decision quality.",
+        "Matching strong answers to video moments with clean audio and confident delivery.",
+        "Assembling a 30-minute hiring manager clip around the strongest proof points.",
+        "Rendering the preview and preparing refinement controls.",
+      ];
+
+      function createRealtimeState() {
+        return {
+          pc: null,
+          dc: null,
+          localStream: null,
+          remoteAudio: null,
+          transcriptItems: new Map(),
+          transcriptOrder: [],
+          responseBubble: null,
+          responseBody: null,
+          responseCursor: null,
+          responseText: "",
+          responseCounted: false,
+        };
+      }
+
+      function showScreen(name) {
+        Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
+        screens[name].classList.add("is-active");
+      }
+
+      function formatTime(value) {
+        const minutes = Math.floor(value / 60)
+          .toString()
+          .padStart(2, "0");
+        const secs = (value % 60).toString().padStart(2, "0");
+        return `${minutes}:${secs}`;
+      }
+
+      function beginTimer() {
+        clearInterval(timerId);
+        seconds = 0;
+        timer.textContent = "00:00";
+        timerId = setInterval(() => {
+          seconds += 1;
+          timer.textContent = formatTime(seconds);
+        }, 1000);
+      }
+
+      function addSystemBubble(text) {
+        const bubble = document.createElement("article");
+        bubble.className = "bubble system";
+        bubble.textContent = text;
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      function addOpeningQuestion() {
+        const bubble = document.createElement("article");
+        bubble.className = "bubble question";
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.innerHTML = "<span>Opening</span><span>AI interviewer</span>";
+
+        const body = document.createElement("p");
+        body.textContent = openingQuestion;
+
+        bubble.append(meta, body);
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+
+        asked = 1;
+        askedCount.textContent = asked;
+      }
+
+      function ensureResponseBubble() {
+        if (realtime.responseBubble) return;
+
+        const bubble = document.createElement("article");
+        bubble.className = "bubble followup";
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.innerHTML = "<span>Follow-up</span><span>OpenAI realtime</span>";
+
+        const body = document.createElement("p");
+        const cursor = document.createElement("span");
+        cursor.className = "cursor";
+        body.append(cursor);
+
+        bubble.append(meta, body);
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+
+        realtime.responseBubble = bubble;
+        realtime.responseBody = body;
+        realtime.responseCursor = cursor;
+        realtime.responseText = "";
+        realtime.responseCounted = false;
+      }
+
+      function setResponseText(text) {
+        ensureResponseBubble();
+        realtime.responseText = text;
+        realtime.responseBody.textContent = realtime.responseText;
+        realtime.responseBody.append(realtime.responseCursor);
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      function appendResponseDelta(delta) {
+        if (!delta) return;
+        setResponseText(realtime.responseText + delta);
+      }
+
+      function finalizeResponse() {
+        if (!realtime.responseBubble) return;
+
+        const text = realtime.responseText.trim();
+        realtime.responseCursor?.remove();
+
+        if (!text) {
+          realtime.responseBubble.remove();
+        } else if (!realtime.responseCounted) {
+          asked += 1;
+          askedCount.textContent = asked;
+          realtime.responseCounted = true;
+        }
+
+        realtime.responseBubble = null;
+        realtime.responseBody = null;
+        realtime.responseCursor = null;
+        realtime.responseText = "";
+      }
+
+      function ensureTranscriptEntry(itemId) {
+        const id = itemId || "latest";
+        if (!realtime.transcriptItems.has(id)) {
+          realtime.transcriptItems.set(id, { draft: "", text: "" });
+          realtime.transcriptOrder.push(id);
+        }
+        return realtime.transcriptItems.get(id);
+      }
+
+      function setTranscript(text) {
+        transcriptText.textContent = text || "";
+        requestAnimationFrame(() => {
+          transcriptText.scrollTop = transcriptText.scrollHeight;
+        });
+      }
+
+      function handleRealtimeEvent(event) {
+        switch (event.type) {
+          case "session.created":
+            break;
+          case "session.updated":
+            break;
+          case "input_audio_buffer.speech_started":
+            break;
+          case "input_audio_buffer.speech_stopped":
+            break;
+          case "conversation.item.input_audio_transcription.delta": {
+            const entry = ensureTranscriptEntry(event.item_id);
+            entry.draft += event.delta || "";
+            setTranscript(entry.draft);
+            break;
+          }
+          case "conversation.item.input_audio_transcription.completed": {
+            const entry = ensureTranscriptEntry(event.item_id);
+            entry.text = event.transcript || entry.draft;
+            entry.draft = entry.text;
+            setTranscript(entry.text);
+            break;
+          }
+          case "response.created":
+            ensureResponseBubble();
+            break;
+          case "response.output_text.delta":
+          case "response.text.delta":
+            appendResponseDelta(event.delta);
+            break;
+          case "response.output_text.done":
+          case "response.text.done":
+            if (event.text && event.text !== realtime.responseText) {
+              setResponseText(event.text);
+            }
+            break;
+          case "response.done": {
+            const finalText = extractResponseText(event.response);
+            if (finalText && finalText !== realtime.responseText.trim()) {
+              setResponseText(finalText);
+            }
+            finalizeResponse();
+            break;
+          }
+          case "error":
+            addSystemBubble(event.error?.message || "Realtime API returned an error.");
+            break;
+          default:
+            break;
+        }
+      }
+
+      function extractResponseText(response) {
+        const chunks = [];
+        for (const item of response?.output || []) {
+          if (item.type === "message") {
+            for (const part of item.content || []) {
+              if (part.type === "output_text" || part.type === "text") {
+                chunks.push(part.text || "");
+              }
+              if (part.transcript) chunks.push(part.transcript);
+            }
+          }
+          if (item.text) chunks.push(item.text);
+        }
+        return chunks.join(" ").trim();
+      }
+
+      async function startCall() {
+        if (isConnecting) return;
+
+        isConnecting = true;
+        startButton.disabled = true;
+        feed.innerHTML = "";
+        asked = 0;
+        isMuted = false;
+        askedCount.textContent = "0";
+        updateMuteButtons();
+        addOpeningQuestion();
+        setTranscript("");
+        showScreen("call");
+        beginTimer();
+
+        try {
+          await startRealtimeSession();
+        } catch (error) {
+          clearInterval(timerId);
+          stopRealtimeSession();
+          addSystemBubble(readableError(error));
+        } finally {
+          isConnecting = false;
+          startButton.disabled = false;
+        }
+      }
+
+      async function startRealtimeSession() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("This browser does not expose microphone capture on navigator.mediaDevices.");
+        }
+
+        realtime = createRealtimeState();
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video: false,
+        });
+
+        const pc = new RTCPeerConnection();
+        const dc = pc.createDataChannel("oai-events");
+        const remoteAudio = document.createElement("audio");
+        remoteAudio.autoplay = true;
+        remoteAudio.hidden = true;
+        document.body.append(remoteAudio);
+
+        realtime.pc = pc;
+        realtime.dc = dc;
+        realtime.localStream = stream;
+        realtime.remoteAudio = remoteAudio;
+
+        stream.getAudioTracks().forEach((track) => pc.addTrack(track, stream));
+        pc.ontrack = (event) => {
+          remoteAudio.srcObject = event.streams[0];
+        };
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+            addSystemBubble(`WebRTC connection ${pc.connectionState}.`);
+          }
+        };
+        dc.addEventListener("message", (message) => {
+          try {
+            handleRealtimeEvent(JSON.parse(message.data));
+          } catch (error) {
+            console.error("Failed to parse realtime event", error);
+          }
+        });
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        const response = await fetch("/session", {
+          method: "POST",
+          body: offer.sdp,
+          headers: {
+            "Content-Type": "application/sdp",
+          },
+        });
+
+        const answerSdp = await response.text();
+        if (!response.ok) {
+          throw new Error(parseServerError(response.status, answerSdp));
+        }
+
+        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      }
+
+      function requestFollowUpNow() {
+        if (!sendRealtimeEvent({
+          type: "response.create",
+          response: {
+            output_modalities: ["text"],
+            instructions:
+              "Based on the interview conversation so far, return exactly one concise follow-up question for the interviewer to ask next.",
+          },
+        })) {
+          addSystemBubble("Realtime event channel is not ready yet.");
+          return;
+        }
+
+        addSystemBubble("Requested a follow-up from the live conversation.");
+      }
+
+      function sendRealtimeEvent(event) {
+        if (!realtime.dc || realtime.dc.readyState !== "open") return false;
+        realtime.dc.send(JSON.stringify(event));
+        return true;
+      }
+
+      function stopRealtimeSession() {
+        realtime.localStream?.getTracks().forEach((track) => track.stop());
+        realtime.dc?.close();
+        realtime.pc?.close();
+        realtime.remoteAudio?.remove();
+        finalizeResponse();
+        realtime = createRealtimeState();
+      }
+
+      function endCall() {
+        clearInterval(timerId);
+        stopRealtimeSession();
+        finalDuration.textContent = `${formatTime(seconds)} source interview`;
+        showScreen("generating");
+        beginClipGeneration();
+      }
+
+      function restart() {
+        clearInterval(timerId);
+        clearInterval(clipTimerId);
+        stopRealtimeSession();
+        clipPercent.textContent = "0%";
+        clipProgress.style.width = "0%";
+        clipStep.textContent = generationSteps[0];
+        refineInput.value = "";
+        refineStatus.textContent = "Prompt the editor to reshape the cut before sharing.";
+        setTranscript("");
+        showScreen("precall");
+      }
+
+      function beginClipGeneration() {
+        clearInterval(clipTimerId);
+        let progress = 0;
+        clipPercent.textContent = "0%";
+        clipProgress.style.width = "0%";
+        clipStep.textContent = generationSteps[0];
+        document.querySelectorAll(".analysis-step").forEach((step, index) => {
+          step.classList.toggle("is-active", index === 0);
+        });
+
+        clipTimerId = setInterval(() => {
+          progress = Math.min(100, progress + 4 + Math.floor(Math.random() * 7));
+          const stepIndex = Math.min(3, Math.floor(progress / 26));
+          clipPercent.textContent = `${progress}%`;
+          clipProgress.style.width = `${progress}%`;
+          clipStep.textContent = generationSteps[stepIndex];
+          document.querySelectorAll(".analysis-step").forEach((step, index) => {
+            step.classList.toggle("is-active", index <= stepIndex);
+          });
+
+          if (progress >= 100) {
+            clearInterval(clipTimerId);
+            setTimeout(() => showScreen("clip"), 650);
+          }
+        }, 260);
+      }
+
+      function toggleMute() {
+        isMuted = !isMuted;
+        realtime.localStream?.getAudioTracks().forEach((track) => {
+          track.enabled = !isMuted;
+        });
+        updateMuteButtons();
+      }
+
+      function updateMuteButtons() {
+        for (const button of [pauseButton, headerMuteButton]) {
+          button.innerHTML = isMuted ? mutedIcon : micIcon;
+          button.setAttribute("aria-label", isMuted ? "Unmute microphone" : "Mute microphone");
+          button.title = isMuted ? "Unmute" : "Mute";
+        }
+      }
+
+      function parseServerError(status, body) {
+        try {
+          const parsed = JSON.parse(body);
+          return parsed.details || parsed.error || `Server returned ${status}`;
+        } catch {
+          return body || `Server returned ${status}`;
+        }
+      }
+
+      function readableError(error) {
+        if (error.name === "NotAllowedError") {
+          return "Microphone access was blocked. Allow mic access and start the interview again.";
+        }
+
+        return error.message || "Unable to start the live interview session.";
+      }
+
+      startButton.addEventListener("click", startCall);
+      endButton.addEventListener("click", endCall);
+      restartButton.addEventListener("click", restart);
+      nextButton.addEventListener("click", requestFollowUpNow);
+      pauseButton.addEventListener("click", toggleMute);
+      headerMuteButton.addEventListener("click", toggleMute);
+      window.addEventListener("beforeunload", stopRealtimeSession);
+
+      refineForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const prompt = refineInput.value.trim();
+        refineStatus.textContent = prompt
+          ? `Refining live clip around: "${prompt}"`
+          : "Try asking for a tighter intro, more depth, or less filler.";
+      });
+
+      function enableCameraDrag() {
+        let active = false;
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        cameraTile.addEventListener("pointerdown", (event) => {
+          active = true;
+          cameraTile.setPointerCapture(event.pointerId);
+          const rect = cameraTile.getBoundingClientRect();
+          const parentRect = cameraTile.offsetParent.getBoundingClientRect();
+          startX = event.clientX;
+          startY = event.clientY;
+          startLeft = rect.left - parentRect.left;
+          startTop = rect.top - parentRect.top;
+        });
+
+        cameraTile.addEventListener("pointermove", (event) => {
+          if (!active) return;
+          const parentRect = cameraTile.offsetParent.getBoundingClientRect();
+          const tileRect = cameraTile.getBoundingClientRect();
+          const nextLeft = startLeft + event.clientX - startX;
+          const nextTop = startTop + event.clientY - startY;
+          const clampedLeft = Math.max(10, Math.min(nextLeft, parentRect.width - tileRect.width - 10));
+          const clampedTop = Math.max(68, Math.min(nextTop, parentRect.height - tileRect.height - 92));
+
+          cameraTile.style.left = `${clampedLeft}px`;
+          cameraTile.style.top = `${clampedTop}px`;
+          cameraTile.style.right = "auto";
+          cameraTile.style.bottom = "auto";
+        });
+
+        cameraTile.addEventListener("pointerup", () => {
+          active = false;
+        });
+
+        cameraTile.addEventListener("pointercancel", () => {
+          active = false;
+        });
+      }
+
+      updateMuteButtons();
+      enableCameraDrag();
+    </script>
+  </body>
+</html>

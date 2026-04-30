@@ -1,0 +1,8 @@
+{
+  "name": "deep-dive-prototype-4",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
