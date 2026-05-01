@@ -1,0 +1,2632 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Deep Dive Interview Prototype 6</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: oklch(96% 0.018 84);
+        --paper-strong: oklch(99% 0.008 84);
+        --ink: oklch(17% 0.03 252);
+        --muted: oklch(45% 0.035 248);
+        --line: oklch(84% 0.022 80);
+        --field: oklch(92% 0.018 78);
+        --olive: oklch(52% 0.11 145);
+        --olive-dark: oklch(30% 0.09 149);
+        --gold: oklch(78% 0.14 82);
+        --clay: oklch(62% 0.14 38);
+        --red: oklch(57% 0.22 28);
+        --blue: oklch(49% 0.16 246);
+        --plum: oklch(39% 0.11 315);
+        --shadow: 0 1.25rem 3rem oklch(21% 0.03 255 / 0.18);
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --radius: 0.5rem;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family:
+          "Avenir Next", "SF Pro Display", "Segoe UI Variable", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 12% 12%, oklch(88% 0.055 83 / 0.54), transparent 26rem),
+          radial-gradient(circle at 85% 72%, oklch(83% 0.05 150 / 0.36), transparent 24rem),
+          linear-gradient(90deg, oklch(89% 0.018 84 / 0.4) 1px, transparent 1px),
+          linear-gradient(0deg, oklch(89% 0.018 84 / 0.4) 1px, transparent 1px),
+          var(--paper);
+        background-size:
+          auto,
+          auto,
+          1.75rem 1.75rem,
+          1.75rem 1.75rem;
+        letter-spacing: 0;
+      }
+
+      button {
+        border: 0;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      [tabindex]:focus-visible {
+        outline: 3px solid color-mix(in oklch, var(--blue), white 24%);
+        outline-offset: 3px;
+      }
+
+      .page {
+        min-height: 100svh;
+        display: block;
+        padding: 0;
+        background: var(--paper-strong);
+      }
+
+      .phone {
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        height: 100svh;
+        min-height: 38.75rem;
+        border: 0;
+        border-radius: 0;
+        background: var(--paper-strong);
+        box-shadow: none;
+        isolation: isolate;
+      }
+
+      .phone::before {
+        content: "";
+        position: absolute;
+        top: 0.625rem;
+        left: 50%;
+        width: 4.875rem;
+        height: 1.5rem;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: oklch(14% 0.02 250);
+        z-index: 9;
+      }
+
+      .screen {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: max(1.75rem, env(safe-area-inset-top)) 0.875rem
+          max(1rem, env(safe-area-inset-bottom));
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(14px) scale(0.985);
+        transition:
+          opacity 420ms var(--ease),
+          transform 420ms var(--ease);
+      }
+
+      .screen.is-active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(1);
+      }
+
+      .precall {
+        grid-template-rows: 1fr auto;
+        padding: max(3.25rem, env(safe-area-inset-top)) 1.125rem
+          max(1.25rem, env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, oklch(99% 0.008 84 / 0.95), oklch(93% 0.025 87 / 0.94)),
+          repeating-linear-gradient(
+            135deg,
+            transparent 0 0.875rem,
+            oklch(86% 0.02 83 / 0.5) 0.875rem 0.9375rem
+          );
+      }
+
+      .precall-main {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1.375rem;
+      }
+
+      .brand-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.875rem;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper);
+        font-weight: 800;
+      }
+
+      .live-chip,
+      .topic-chip,
+      .metric-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4375rem;
+        min-height: 2.25rem;
+        padding: 0.4375rem 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: oklch(99% 0.006 85 / 0.82);
+        font-size: 0.875rem;
+        font-weight: 750;
+        color: var(--muted);
+      }
+
+      .dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--red);
+        box-shadow: 0 0 0 4px color-mix(in oklch, var(--red), transparent 78%);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 8.5ch;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 3.75rem;
+        line-height: 1.02;
+        letter-spacing: 0;
+        font-weight: 800;
+        margin-bottom: 0.625rem;
+      }
+
+      .subtitle {
+        max-width: 30ch;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .brief {
+        display: grid;
+        gap: 0.625rem;
+        padding: 0.875rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background:
+          linear-gradient(135deg, color-mix(in oklch, var(--paper-strong), var(--gold) 10%), var(--paper-strong));
+      }
+
+      .brief-title {
+        font-size: 0.875rem;
+        color: var(--muted);
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .topic-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .topic-chip:nth-child(2) {
+        background: color-mix(in oklch, var(--paper-strong), var(--olive) 13%);
+      }
+
+      .topic-chip:nth-child(3) {
+        background: color-mix(in oklch, var(--paper-strong), var(--clay) 13%);
+      }
+
+      .device-check {
+        display: grid;
+        gap: 0.625rem;
+      }
+
+      .device-row {
+        display: grid;
+        grid-template-columns: 2.125rem 1fr auto;
+        align-items: center;
+        gap: 0.625rem;
+        padding: 0.625rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.78);
+      }
+
+      .device-icon {
+        display: grid;
+        place-items: center;
+        width: 2.125rem;
+        height: 2.125rem;
+        border-radius: var(--radius);
+        background: color-mix(in oklch, var(--olive), white 72%);
+        color: var(--olive-dark);
+      }
+
+      .device-copy {
+        display: grid;
+        gap: 0.125rem;
+        min-width: 0;
+      }
+
+      .device-copy strong {
+        font-size: 0.875rem;
+      }
+
+      .device-copy span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.28;
+      }
+
+      .device-state {
+        padding: 0.375rem 0.5rem;
+        border-radius: 999px;
+        background: var(--field);
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 820;
+        white-space: nowrap;
+      }
+
+      .device-state.is-live {
+        background: color-mix(in oklch, var(--olive), white 72%);
+        color: var(--olive-dark);
+      }
+
+      .device-state.is-error {
+        background: color-mix(in oklch, var(--red), white 78%);
+        color: color-mix(in oklch, var(--red), black 18%);
+      }
+
+      .start-button {
+        display: grid;
+        grid-template-columns: 1.375rem 1fr 1.125rem;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        min-height: 3.75rem;
+        padding: 0 1rem;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper-strong);
+        font-weight: 820;
+        box-shadow: 0 12px 30px oklch(18% 0.025 250 / 0.22);
+        transition:
+          transform 180ms var(--ease),
+          background 180ms var(--ease);
+      }
+
+      .start-button:active {
+        transform: translateY(1px) scale(0.99);
+      }
+
+      .call {
+        padding-inline: 0.75rem;
+        background:
+          linear-gradient(180deg, oklch(99% 0.008 84) 0%, oklch(94% 0.018 83) 72%),
+          var(--paper-strong);
+      }
+
+      .call-header {
+        position: relative;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 1.125rem 0.125rem 0.875rem;
+      }
+
+      .header-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .candidate {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+      }
+
+      .candidate strong {
+        font-size: 1rem;
+      }
+
+      .candidate span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 650;
+      }
+
+      .timer {
+        min-width: 4.625rem;
+        text-align: center;
+        padding: 0.5rem 0.6875rem;
+        border-radius: 999px;
+        background: oklch(100% 0 0 / 0.84);
+        border: 1px solid var(--line);
+        font-size: 0.875rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 800;
+      }
+
+      .icon-button {
+        display: grid;
+        place-items: center;
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.84);
+        border: 1px solid var(--line);
+      }
+
+      .icon-button.is-off {
+        color: var(--red);
+        background: color-mix(in oklch, var(--red), white 86%);
+      }
+
+      .feed-wrap {
+        position: relative;
+        min-height: 0;
+        padding: 0.5rem 0 13.5rem;
+      }
+
+      .feed {
+        position: absolute;
+        inset: 0 0 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scroll-behavior: smooth;
+        padding: 0.375rem 0.125rem 13.5rem;
+        scrollbar-width: none;
+      }
+
+      .feed::-webkit-scrollbar {
+        display: none;
+      }
+
+      .bubble {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 0 0.75rem;
+        padding: 1rem 1rem 0.875rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--line);
+        background: var(--paper-strong);
+        box-shadow: 0 0.5rem 1.375rem oklch(26% 0.024 250 / 0.08);
+        transform-origin: left top;
+        animation: arrive 420ms var(--ease) both;
+      }
+
+      .bubble.question {
+        background:
+          linear-gradient(135deg, oklch(19% 0.028 252), oklch(25% 0.045 250));
+        color: var(--paper-strong);
+        border-color: transparent;
+      }
+
+      .bubble.followup {
+        background:
+          linear-gradient(135deg, oklch(19% 0.028 252), color-mix(in oklch, var(--olive-dark), var(--ink) 28%));
+        color: var(--paper-strong);
+        border-color: transparent;
+      }
+
+      .bubble.system {
+        max-width: 100%;
+        margin-inline: auto;
+        padding: 0.5rem 0.625rem;
+        background: transparent;
+        border-color: transparent;
+        box-shadow: none;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .bubble p {
+        font-size: 1.0625rem;
+        line-height: 1.42;
+        letter-spacing: 0;
+      }
+
+      .bubble .meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.625rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 820;
+        letter-spacing: 0;
+        text-transform: uppercase;
+        opacity: 0.74;
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 0.4375rem;
+        height: 1.05em;
+        margin-left: 0.125rem;
+        vertical-align: -0.14em;
+        background: currentColor;
+        animation: blink 900ms steps(2, start) infinite;
+      }
+
+      .transcript-card {
+        position: absolute;
+        left: 0.75rem;
+        right: 0.75rem;
+        bottom: 5.75rem;
+        z-index: 4;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 0.4375rem;
+        height: 7rem;
+        overflow: hidden;
+        padding: 0.75rem;
+        border: 1px solid color-mix(in oklch, var(--line), var(--olive) 12%);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.92);
+        box-shadow: 0 0.875rem 2.125rem oklch(24% 0.03 250 / 0.13);
+        backdrop-filter: blur(1rem);
+      }
+
+      .transcript-card .label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 820;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .pulse-dot {
+        width: 0.4375rem;
+        height: 0.4375rem;
+        border-radius: 50%;
+        background: var(--olive);
+        animation: pulse 1200ms ease-in-out infinite;
+      }
+
+      #transcriptText {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding-right: 0.25rem;
+        color: var(--ink);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        scrollbar-width: thin;
+      }
+
+      .camera-tile {
+        position: absolute;
+        right: 0.75rem;
+        bottom: 13.75rem;
+        z-index: 6;
+        width: 7.25rem;
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border: 2px solid oklch(100% 0 0 / 0.86);
+        border-radius: var(--radius);
+        background: oklch(17% 0.025 244);
+        box-shadow: 0 0.875rem 1.75rem oklch(20% 0.04 250 / 0.34);
+        touch-action: none;
+        user-select: none;
+        cursor: grab;
+      }
+
+      .camera-tile:active {
+        cursor: grabbing;
+      }
+
+      .camera-noise {
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            oklch(100% 0 0 / 0.05) 0 1px,
+            transparent 1px 0.25rem
+          ),
+          linear-gradient(150deg, oklch(50% 0.11 244 / 0.52), transparent 44%),
+          linear-gradient(25deg, oklch(72% 0.13 41 / 0.42), transparent 54%);
+        animation: cameraShift 5400ms ease-in-out infinite alternate;
+      }
+
+      .camera-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+        opacity: 0;
+        transition: opacity 220ms var(--ease);
+      }
+
+      .camera-tile.has-video .camera-video {
+        opacity: 1;
+      }
+
+      .camera-tile.has-video .camera-noise,
+      .camera-tile.has-video .face {
+        opacity: 0;
+      }
+
+      .camera-tile.camera-off .camera-video {
+        opacity: 0;
+      }
+
+      .camera-tile.camera-off .camera-noise,
+      .camera-tile.camera-off .face {
+        opacity: 1;
+      }
+
+      .face {
+        position: absolute;
+        left: 50%;
+        top: 46%;
+        width: 3.625rem;
+        height: 4.75rem;
+        transform: translate(-50%, -50%);
+      }
+
+      .head {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 2.125rem;
+        height: 2.375rem;
+        transform: translateX(-50%);
+        border-radius: 46% 46% 44% 44%;
+        background: oklch(83% 0.065 65);
+      }
+
+      .shoulders {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        width: 4.25rem;
+        height: 2.5rem;
+        transform: translateX(-50%);
+        border-radius: 50% 50% 10px 10px;
+        background: color-mix(in oklch, var(--olive-dark), black 10%);
+      }
+
+      .camera-label {
+        position: absolute;
+        left: 0.4375rem;
+        right: 0.4375rem;
+        bottom: 0.4375rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.375rem;
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 820;
+      }
+
+      .meter {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.125rem;
+        height: 0.75rem;
+      }
+
+      .meter i {
+        width: 0.1875rem;
+        min-height: 0.1875rem;
+        border-radius: 999px;
+        background: var(--gold);
+        animation: level 600ms ease-in-out infinite alternate;
+      }
+
+      .meter i:nth-child(2) {
+        animation-delay: 120ms;
+      }
+
+      .meter i:nth-child(3) {
+        animation-delay: 240ms;
+      }
+
+      .meter i:nth-child(4) {
+        animation-delay: 80ms;
+      }
+
+      .call-controls {
+        position: absolute;
+        left: 50%;
+        bottom: 1.5rem;
+        z-index: 7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        transform: translateX(-50%);
+      }
+
+      .round-control {
+        display: grid;
+        place-items: center;
+        min-width: 3rem;
+        min-height: 3rem;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.88);
+        border: 1px solid var(--line);
+        box-shadow: 0 0.625rem 1.5rem oklch(23% 0.03 250 / 0.14);
+      }
+
+      .end-control {
+        width: 3.875rem;
+        height: 3.875rem;
+        color: white;
+        background: var(--red);
+        border-color: transparent;
+        box-shadow: 0 0.75rem 1.75rem color-mix(in oklch, var(--red), transparent 56%);
+      }
+
+      .recap {
+        grid-template-rows: auto 1fr auto;
+        gap: 0.875rem;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: max(3.25rem, env(safe-area-inset-top)) 1.125rem
+          max(1.25rem, env(safe-area-inset-bottom));
+        background:
+          linear-gradient(180deg, oklch(99% 0.006 85), oklch(94% 0.018 82)),
+          var(--paper);
+        scrollbar-width: thin;
+      }
+
+      #clipScreen {
+        grid-template-rows: auto auto auto;
+        align-content: start;
+      }
+
+      #clipScreen .recap-grid {
+        align-self: start;
+      }
+
+      .recap-header {
+        display: grid;
+        gap: 0.75rem;
+        padding-top: 0.875rem;
+      }
+
+      .recap h2 {
+        max-width: 9ch;
+        font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        font-size: 3.375rem;
+        line-height: 0.92;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .recap-grid {
+        align-self: center;
+        display: grid;
+        gap: 0.875rem;
+      }
+
+      .analysis-card {
+        display: grid;
+        gap: 1.125rem;
+        padding: 1.125rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .progress-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      .progress-value {
+        font-size: 2rem;
+        font-weight: 860;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .analysis-copy {
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.45;
+      }
+
+      .clip-progress {
+        height: 0.75rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--field);
+      }
+
+      .clip-progress span {
+        display: block;
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--olive), var(--gold), var(--clay));
+        transition: width 260ms var(--ease);
+      }
+
+      .analysis-steps {
+        display: grid;
+        gap: 0.5625rem;
+      }
+
+      .analysis-step {
+        display: flex;
+        align-items: center;
+        gap: 0.5625rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 720;
+      }
+
+      .analysis-step::before {
+        content: "";
+        width: 0.5625rem;
+        height: 0.5625rem;
+        border-radius: 50%;
+        background: var(--line);
+      }
+
+      .analysis-step.is-active {
+        color: var(--ink);
+      }
+
+      .analysis-step.is-active::before {
+        background: var(--olive);
+        box-shadow: 0 0 0 5px color-mix(in oklch, var(--olive), transparent 80%);
+      }
+
+      .summary-card,
+      .player-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .player-card {
+        overflow: hidden;
+      }
+
+      .player-visual {
+        position: relative;
+        height: 10rem;
+        background:
+          linear-gradient(135deg, oklch(18% 0.024 250), oklch(28% 0.075 143) 52%, var(--plum)),
+          oklch(18% 0.024 250);
+      }
+
+      .clip-visual {
+        height: 12rem;
+      }
+
+      .clip-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: oklch(18% 0.024 250);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .clip-video.has-recording {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .clip-video.has-recording + .play-button {
+        display: none;
+      }
+
+      .clip-visual::before {
+        content: "30 sec";
+        position: absolute;
+        left: 0.75rem;
+        top: 0.75rem;
+        padding: 0.375rem 0.5625rem;
+        border-radius: 999px;
+        background: oklch(100% 0 0 / 0.9);
+        color: var(--ink);
+        font-size: 0.875rem;
+        font-weight: 840;
+      }
+
+      .play-button {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        margin: auto;
+        min-width: 3.625rem;
+        min-height: 3.625rem;
+        border-radius: 50%;
+        background: oklch(100% 0 0 / 0.92);
+      }
+
+      .timeline {
+        display: grid;
+        gap: 0.5rem;
+        padding: 0.75rem;
+      }
+
+      .track {
+        height: 0.5625rem;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--field);
+      }
+
+      .track span {
+        display: block;
+        width: 68%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--olive), var(--gold), var(--clay));
+      }
+
+      .clip-plan-card {
+        display: grid;
+        gap: 0.75rem;
+        padding: 0.875rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .clip-plan-head {
+        display: grid;
+        gap: 0.375rem;
+      }
+
+      .clip-plan-head strong {
+        font-size: 1rem;
+      }
+
+      .clip-plan-head span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.35;
+      }
+
+      .clip-segments {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .clip-segment {
+        display: grid;
+        grid-template-columns: 4.25rem 1fr;
+        gap: 0.625rem;
+        align-items: start;
+        padding: 0.625rem;
+        border-radius: var(--radius);
+        background: var(--field);
+      }
+
+      .clip-segment time {
+        color: var(--olive-dark);
+        font-size: 0.875rem;
+        font-weight: 850;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .clip-segment div {
+        display: grid;
+        gap: 0.25rem;
+        min-width: 0;
+      }
+
+      .clip-segment strong {
+        font-size: 0.875rem;
+      }
+
+      .clip-segment span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.32;
+      }
+
+      .summary-card {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        overflow: hidden;
+        background: var(--line);
+      }
+
+      .summary-card div {
+        display: grid;
+        gap: 5px;
+        padding: 0.8125rem 0.625rem;
+        background: var(--paper-strong);
+      }
+
+      .summary-card strong {
+        font-size: 1.375rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .summary-card span {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 740;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .restart-button {
+        width: 100%;
+        min-height: 3.375rem;
+        border-radius: var(--radius);
+        background: var(--ink);
+        color: var(--paper-strong);
+        font-weight: 820;
+      }
+
+      .refine-card {
+        display: grid;
+        gap: 0.625rem;
+        padding: 0.75rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--paper-strong);
+        box-shadow: 0 0.625rem 1.5rem oklch(26% 0.024 250 / 0.08);
+      }
+
+      .refine-card label {
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 840;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .refine-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.5rem;
+      }
+
+      .refine-row input {
+        min-width: 0;
+        min-height: 2.75rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--field);
+        color: var(--ink);
+        font: inherit;
+        padding: 0 0.75rem;
+      }
+
+      .refine-row button {
+        min-height: 2.75rem;
+        padding: 0 0.8125rem;
+        border-radius: var(--radius);
+        background: var(--olive-dark);
+        color: var(--paper-strong);
+        font-weight: 820;
+      }
+
+      .refine-status {
+        min-height: 1.125rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.3;
+      }
+
+      .side-panel {
+        align-self: stretch;
+        display: none;
+        align-content: center;
+        gap: 0.875rem;
+        max-width: 21.25rem;
+      }
+
+      .panel-card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: oklch(99% 0.006 85 / 0.84);
+        box-shadow: 0 0.75rem 2.125rem oklch(22% 0.03 250 / 0.08);
+        overflow: hidden;
+      }
+
+      .panel-section {
+        padding: 0.875rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-section:last-child {
+        border-bottom: 0;
+      }
+
+      .panel-kicker {
+        margin-bottom: 0.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-weight: 840;
+        text-transform: uppercase;
+        letter-spacing: 0;
+      }
+
+      .panel-title {
+        font-size: 1.75rem;
+        line-height: 1;
+        font-weight: 860;
+      }
+
+      .topic-list {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .topic-item {
+        display: grid;
+        grid-template-columns: 0.5625rem 1fr;
+        gap: 0.5625rem;
+        align-items: start;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.35;
+      }
+
+      .topic-item::before {
+        content: "";
+        width: 0.5625rem;
+        height: 0.5625rem;
+        margin-top: 0.3125rem;
+        border-radius: 50%;
+        background: var(--olive);
+      }
+
+      .topic-item:nth-child(2)::before {
+        background: var(--clay);
+      }
+
+      .topic-item:nth-child(3)::before {
+        background: var(--blue);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+      }
+
+      .metric-chip {
+        justify-content: center;
+        border-radius: var(--radius);
+        min-height: 2.625rem;
+      }
+
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        stroke: currentColor;
+        stroke-width: 2.15;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+      }
+
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.55);
+          opacity: 0.42;
+        }
+      }
+
+      @keyframes level {
+        from {
+          height: 3px;
+        }
+        to {
+          height: 12px;
+        }
+      }
+
+      @keyframes cameraShift {
+        from {
+          transform: scale(1.04) translate(-2px, -1px);
+        }
+        to {
+          transform: scale(1.09) translate(3px, 2px);
+        }
+      }
+
+      @media (min-width: 768px) {
+        .page {
+          display: grid;
+          place-items: center;
+          padding: 1.5rem;
+          background: transparent;
+        }
+
+        .phone {
+          width: min(100%, 27rem);
+          height: min(53.75rem, calc(100svh - 3rem));
+          min-height: 43rem;
+          border: 1px solid oklch(80% 0.02 82);
+          border-radius: 2rem;
+          box-shadow: var(--shadow);
+        }
+
+        .phone::after {
+          content: "";
+          position: absolute;
+          inset: 0.625rem;
+          border: 1px solid oklch(100% 0 0 / 0.5);
+          border-radius: 1.5rem;
+          pointer-events: none;
+          z-index: 8;
+        }
+
+        h1 {
+          font-size: 4.25rem;
+        }
+
+        .recap h2 {
+          font-size: 3.75rem;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .page {
+          grid-template-columns: minmax(0, 27rem) minmax(18rem, 21.25rem);
+          gap: 2.25rem;
+          justify-content: center;
+        }
+
+        .side-panel {
+          display: grid;
+        }
+      }
+
+      @media (min-width: 1280px) {
+        .page {
+          gap: 3rem;
+          padding: 2.25rem;
+        }
+      }
+
+      @media (max-height: 710px) {
+        .phone {
+          min-height: 38.75rem;
+        }
+
+        .precall-main {
+          gap: 1.125rem;
+        }
+
+        h1 {
+          font-size: 3.375rem;
+        }
+
+        .transcript-card {
+          bottom: 5.25rem;
+          height: 6.25rem;
+        }
+
+        .camera-tile {
+          width: 6.25rem;
+          bottom: 12.25rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <main class="phone" aria-label="Deep Dive Interview prototype">
+        <section class="screen precall is-active" id="precallScreen">
+          <div class="precall-main">
+            <div class="brand-row">
+              <div class="mark" aria-hidden="true">D</div>
+              <div class="live-chip"><span class="dot"></span> Prototype 6</div>
+            </div>
+
+            <div>
+              <h1>Deep Dive</h1>
+              <p class="subtitle">
+                Product engineering interview for Taylor, focused on shipped systems and
+                decision quality.
+              </p>
+            </div>
+
+            <div class="brief">
+              <div class="brief-title">Resume topics</div>
+              <div class="topic-row" aria-label="Deep dive topics">
+                <span class="topic-chip">Realtime collaboration</span>
+                <span class="topic-chip">Workflow automation</span>
+                <span class="topic-chip">Incident recovery</span>
+              </div>
+            </div>
+
+            <div class="device-check" aria-label="Camera readiness">
+              <div class="device-row">
+                <span class="device-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="m15 10 4.55-2.27A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.89L15 14" />
+                    <path d="M3 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3z" />
+                  </svg>
+                </span>
+                <span class="device-copy">
+                  <strong>Camera + mic</strong>
+                  <span id="cameraReadyCopy">Browser permission requested when the interview starts.</span>
+                </span>
+                <span class="device-state" id="cameraState">Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="start-button" id="startButton">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.1 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.58 2.6a2 2 0 0 1-.45 2.11L8 9.68a16 16 0 0 0 6.32 6.32l1.25-1.25a2 2 0 0 1 2.11-.45c.83.26 1.7.46 2.6.58A2 2 0 0 1 22 16.92z" />
+            </svg>
+            Start interview
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </section>
+
+        <section class="screen call" id="callScreen" aria-live="polite">
+          <header class="call-header">
+            <div class="candidate">
+              <strong>Deep Dive Interview</strong>
+              <span>Realtime OpenAI session + local recording</span>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+            <div class="header-controls">
+              <button class="icon-button" id="cameraButton" aria-label="Turn camera off" title="Camera">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m15 10 4.55-2.27A1 1 0 0 1 21 8.62v6.76a1 1 0 0 1-1.45.89L15 14" />
+                  <path d="M3 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3z" />
+                </svg>
+              </button>
+              <button class="icon-button" id="headerMuteButton" aria-label="Mute microphone" title="Mute">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <path d="M12 19v3" />
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <div class="feed-wrap">
+            <div class="feed" id="questionFeed"></div>
+          </div>
+
+          <aside class="transcript-card" aria-label="Live transcript">
+            <div class="label"><span class="pulse-dot"></span> Transcript</div>
+            <div id="transcriptText" aria-live="polite"></div>
+          </aside>
+
+          <div class="camera-tile" id="cameraTile" aria-label="Draggable candidate camera tile">
+            <video id="cameraVideo" class="camera-video" autoplay playsinline muted></video>
+            <div class="camera-noise"></div>
+            <div class="face" aria-hidden="true">
+              <div class="shoulders"></div>
+              <div class="head"></div>
+            </div>
+            <div class="camera-label">
+              <span id="cameraLabel">Taylor</span>
+              <span class="meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+          <nav class="call-controls" aria-label="Interview controls">
+            <button class="round-control" id="nextButton" aria-label="Request follow-up now" title="Follow-up">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m6 17 5-5-5-5" />
+                <path d="m13 17 5-5-5-5" />
+              </svg>
+            </button>
+            <button class="round-control end-control" id="endButton" aria-label="End interview" title="End">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M10.68 13.31a16 16 0 0 0 6.01 0l1.47 2.93a2 2 0 0 1-.45 2.33l-1.18 1.18a2 2 0 0 1-2.24.38 20.3 20.3 0 0 1-8.43-8.43 2 2 0 0 1 .38-2.24l1.18-1.18a2 2 0 0 1 2.33-.45l2.93 1.47z" />
+                <path d="M4 5c4.8-3.2 11.2-3.2 16 0" />
+              </svg>
+            </button>
+            <button class="round-control" id="pauseButton" aria-label="Mute microphone" title="Mute">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 5v14" />
+                <path d="M16 5v14" />
+              </svg>
+            </button>
+          </nav>
+        </section>
+
+        <section class="screen recap" id="generatingScreen">
+          <header class="recap-header">
+            <div class="live-chip"><span class="dot"></span> Analyzing recording</div>
+            <h2>Generating clip</h2>
+          </header>
+
+          <div class="recap-grid">
+            <article class="analysis-card" aria-label="Clip generation progress">
+              <div class="progress-head">
+                <div>
+                  <div class="panel-kicker">Hiring manager cut</div>
+                  <p class="analysis-copy" id="clipStep">
+                    Finding the clearest technical proof points from the interview.
+                  </p>
+                </div>
+                <strong class="progress-value" id="clipPercent">0%</strong>
+              </div>
+              <div class="clip-progress" aria-hidden="true"><span id="clipProgress"></span></div>
+              <div class="analysis-steps">
+                <div class="analysis-step is-active" data-step="0">Reading transcript for signal</div>
+                <div class="analysis-step" data-step="1">Scoring video moments</div>
+                <div class="analysis-step" data-step="2">Assembling the 30-minute clip</div>
+                <div class="analysis-step" data-step="3">Rendering preview</div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="screen recap" id="clipScreen">
+          <header class="recap-header">
+            <div class="live-chip"><span class="dot"></span> Clip generated</div>
+            <h2>Preview clip</h2>
+          </header>
+
+          <div class="recap-grid">
+            <article class="player-card" aria-label="Generated clip preview">
+              <div class="player-visual clip-visual">
+                <video id="clipVideo" class="clip-video" controls playsinline></video>
+                <button class="play-button" aria-label="Play recording">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m8 5 11 7-11 7z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="timeline">
+                <div class="track"><span></span></div>
+                <div class="candidate">
+                  <strong id="finalDuration">00:00 source interview</strong>
+                  <span>Best technical depth moments for hiring managers</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="summary-card" aria-label="Interview summary">
+              <div><strong id="askedCount">0</strong><span>Asked</span></div>
+              <div><strong>3</strong><span>Topics</span></div>
+              <div><strong>1</strong><span>Clip</span></div>
+            </article>
+
+            <article class="clip-plan-card" aria-label="30 second clip plan">
+              <div class="clip-plan-head">
+                <div class="panel-kicker">Selected timestamps</div>
+                <strong id="clipPlanTitle">Waiting for clip plan</strong>
+                <span id="clipPlanSummary">The finished preview will skip directly between high-signal moments.</span>
+              </div>
+              <div class="clip-segments" id="clipSegments"></div>
+            </article>
+
+            <form class="refine-card" id="refineForm">
+              <label for="refineInput">Refine this clip</label>
+              <div class="refine-row">
+                <input
+                  id="refineInput"
+                  autocomplete="off"
+                  placeholder="More architecture depth, tighter intro..."
+                />
+                <button type="submit">Refine</button>
+              </div>
+              <div class="refine-status" id="refineStatus">
+                Prompt the editor to reshape the cut before sharing.
+              </div>
+            </form>
+          </div>
+
+          <button class="restart-button" id="restartButton">Run prototype again</button>
+        </section>
+      </main>
+
+      <aside class="side-panel" aria-label="Prototype interview plan">
+        <section class="panel-card">
+          <div class="panel-section">
+            <div class="panel-kicker">Interview plan</div>
+            <div class="panel-title">Question feed replaces the remote caller.</div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-kicker">Deep dive topics</div>
+            <div class="topic-list">
+              <div class="topic-item">Realtime collaboration architecture from the resume project.</div>
+              <div class="topic-item">Automation decisions, ownership, and quality controls.</div>
+              <div class="topic-item">Incident recovery, debugging, and production judgment.</div>
+            </div>
+          </div>
+          <div class="panel-section">
+            <div class="panel-kicker">Live capture</div>
+            <div class="status-grid">
+              <span class="metric-chip" id="panelVideoStatus">Video ready</span>
+              <span class="metric-chip">Audio</span>
+              <span class="metric-chip">Transcript</span>
+              <span class="metric-chip">Follow-ups</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <script>
+      const screens = {
+        precall: document.querySelector("#precallScreen"),
+        call: document.querySelector("#callScreen"),
+        generating: document.querySelector("#generatingScreen"),
+        clip: document.querySelector("#clipScreen"),
+      };
+
+      const startButton = document.querySelector("#startButton");
+      const endButton = document.querySelector("#endButton");
+      const restartButton = document.querySelector("#restartButton");
+      const nextButton = document.querySelector("#nextButton");
+      const pauseButton = document.querySelector("#pauseButton");
+      const headerMuteButton = document.querySelector("#headerMuteButton");
+      const cameraButton = document.querySelector("#cameraButton");
+      const feed = document.querySelector("#questionFeed");
+      const timer = document.querySelector("#timer");
+      const transcriptText = document.querySelector("#transcriptText");
+      const askedCount = document.querySelector("#askedCount");
+      const finalDuration = document.querySelector("#finalDuration");
+      const cameraTile = document.querySelector("#cameraTile");
+      const cameraVideo = document.querySelector("#cameraVideo");
+      const clipVideo = document.querySelector("#clipVideo");
+      const cameraLabel = document.querySelector("#cameraLabel");
+      const cameraState = document.querySelector("#cameraState");
+      const cameraReadyCopy = document.querySelector("#cameraReadyCopy");
+      const panelVideoStatus = document.querySelector("#panelVideoStatus");
+      const clipPercent = document.querySelector("#clipPercent");
+      const clipProgress = document.querySelector("#clipProgress");
+      const clipStep = document.querySelector("#clipStep");
+      const clipPlanTitle = document.querySelector("#clipPlanTitle");
+      const clipPlanSummary = document.querySelector("#clipPlanSummary");
+      const clipSegments = document.querySelector("#clipSegments");
+      const refineForm = document.querySelector("#refineForm");
+      const refineInput = document.querySelector("#refineInput");
+      const refineStatus = document.querySelector("#refineStatus");
+
+      const micIcon =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><path d="M12 19v3"></path></svg>';
+      const mutedIcon =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 5 2.24"></path><path d="M19 10v2a7 7 0 0 1-.7 3.06"></path><path d="M5 10v2a7 7 0 0 0 9.35 6.6"></path><path d="M12 19v3"></path><path d="m3 3 18 18"></path></svg>';
+      const openingQuestion = "Tell me a bit about yourself.";
+
+      let asked = 0;
+      let seconds = 0;
+      let timerId = null;
+      let clipTimerId = null;
+      let isConnecting = false;
+      let isMuted = false;
+      let cameraEnabled = true;
+      let mediaRecorder = null;
+      let recordingUrl = null;
+      let recordedChunks = [];
+      let recordingSessionId = 0;
+      let recordingStopPromise = Promise.resolve(null);
+      let recordingStopResolve = null;
+      let latestRecordingBlob = null;
+      let latestRecordingMimeType = "";
+      let sessionId = "";
+      let sessionStartedAt = "";
+      let sessionEndedAt = "";
+      let callStartedAtMs = 0;
+      let transcriptSegments = [];
+      let questionEvents = [];
+      let realtimeEvents = [];
+      let clipPlan = null;
+      let clipRanges = [];
+      let activeClipRangeIndex = 0;
+      let realtime = createRealtimeState();
+
+      const generationSteps = [
+        "Saving the transcript and recording to a timestamped server folder.",
+        "Starting a new ChatGPT clip-selection conversation with the full transcript.",
+        "Selecting the problem, idea, and decision moments for a 30 second cut.",
+        "Preparing a skip-playback preview from the saved recording.",
+      ];
+
+      function createRealtimeState() {
+        return {
+          pc: null,
+          dc: null,
+          localStream: null,
+          remoteAudio: null,
+          transcriptItems: new Map(),
+          transcriptOrder: [],
+          responseBubble: null,
+          responseBody: null,
+          responseCursor: null,
+          responseText: "",
+          responseCounted: false,
+        };
+      }
+
+      function showScreen(name) {
+        Object.values(screens).forEach((screen) => screen.classList.remove("is-active"));
+        screens[name].classList.add("is-active");
+      }
+
+      function formatTime(value) {
+        const minutes = Math.floor(value / 60)
+          .toString()
+          .padStart(2, "0");
+        const secs = (value % 60).toString().padStart(2, "0");
+        return `${minutes}:${secs}`;
+      }
+
+      function beginTimer() {
+        clearInterval(timerId);
+        seconds = 0;
+        timer.textContent = "00:00";
+        timerId = setInterval(() => {
+          seconds += 1;
+          timer.textContent = formatTime(seconds);
+        }, 1000);
+      }
+
+      function elapsedSeconds() {
+        if (!callStartedAtMs) return 0;
+        return Math.max(0, Math.round(((performance.now() - callStartedAtMs) / 1000) * 10) / 10);
+      }
+
+      function resetSessionState() {
+        sessionId = `interview-${Date.now().toString(36)}`;
+        sessionStartedAt = new Date().toISOString();
+        sessionEndedAt = "";
+        callStartedAtMs = performance.now();
+        transcriptSegments = [];
+        questionEvents = [];
+        realtimeEvents = [];
+        clipPlan = null;
+        clipRanges = [];
+        activeClipRangeIndex = 0;
+        renderClipPlan(null);
+      }
+
+      function addSystemBubble(text) {
+        const bubble = document.createElement("article");
+        bubble.className = "bubble system";
+        bubble.textContent = text;
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      function addOpeningQuestion() {
+        const bubble = document.createElement("article");
+        bubble.className = "bubble question";
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.innerHTML = "<span>Opening</span><span>AI interviewer</span>";
+
+        const body = document.createElement("p");
+        body.textContent = openingQuestion;
+
+        bubble.append(meta, body);
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+
+        questionEvents.push({
+          type: "opening_question",
+          label: "Opening",
+          speaker: "AI interviewer",
+          text: openingQuestion,
+          atSeconds: elapsedSeconds(),
+          atIso: new Date().toISOString(),
+        });
+
+        asked = 1;
+        askedCount.textContent = asked;
+      }
+
+      function ensureResponseBubble() {
+        if (realtime.responseBubble) return;
+
+        const bubble = document.createElement("article");
+        bubble.className = "bubble followup";
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.innerHTML = "<span>Follow-up</span><span>OpenAI realtime</span>";
+
+        const body = document.createElement("p");
+        const cursor = document.createElement("span");
+        cursor.className = "cursor";
+        body.append(cursor);
+
+        bubble.append(meta, body);
+        feed.appendChild(bubble);
+        feed.scrollTop = feed.scrollHeight;
+
+        realtime.responseBubble = bubble;
+        realtime.responseBody = body;
+        realtime.responseCursor = cursor;
+        realtime.responseText = "";
+        realtime.responseCounted = false;
+      }
+
+      function setResponseText(text) {
+        ensureResponseBubble();
+        realtime.responseText = text;
+        realtime.responseBody.textContent = realtime.responseText;
+        realtime.responseBody.append(realtime.responseCursor);
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      function appendResponseDelta(delta) {
+        if (!delta) return;
+        setResponseText(realtime.responseText + delta);
+      }
+
+      function finalizeResponse() {
+        if (!realtime.responseBubble) return;
+
+        const text = realtime.responseText.trim();
+        realtime.responseCursor?.remove();
+
+        if (!text) {
+          realtime.responseBubble.remove();
+        } else if (!realtime.responseCounted) {
+          questionEvents.push({
+            type: "follow_up",
+            label: "Follow-up",
+            speaker: "OpenAI realtime",
+            text,
+            atSeconds: elapsedSeconds(),
+            atIso: new Date().toISOString(),
+          });
+          asked += 1;
+          askedCount.textContent = asked;
+          realtime.responseCounted = true;
+        }
+
+        realtime.responseBubble = null;
+        realtime.responseBody = null;
+        realtime.responseCursor = null;
+        realtime.responseText = "";
+      }
+
+      function ensureTranscriptEntry(itemId) {
+        const id = itemId || "latest";
+        if (!realtime.transcriptItems.has(id)) {
+          realtime.transcriptItems.set(id, {
+            draft: "",
+            text: "",
+            startSeconds: elapsedSeconds(),
+            endSeconds: elapsedSeconds(),
+          });
+          realtime.transcriptOrder.push(id);
+        }
+        return realtime.transcriptItems.get(id);
+      }
+
+      function setTranscript(text) {
+        transcriptText.textContent = text || "";
+        requestAnimationFrame(() => {
+          transcriptText.scrollTop = transcriptText.scrollHeight;
+        });
+      }
+
+      function renderTranscript() {
+        const lines = realtime.transcriptOrder
+          .map((id, index) => {
+            const entry = realtime.transcriptItems.get(id);
+            const text = (entry?.text || entry?.draft || "").trim();
+            if (!text) return "";
+            return `${formatTime(Math.floor(entry.startSeconds || 0))} Candidate ${index + 1}: ${text}`;
+          })
+          .filter(Boolean);
+        setTranscript(lines.join("\n\n"));
+      }
+
+      function snapshotTranscriptSegments() {
+        if (!realtime.transcriptOrder.length && transcriptSegments.length) return transcriptSegments;
+        transcriptSegments = realtime.transcriptOrder
+          .map((id, index) => {
+            const entry = realtime.transcriptItems.get(id);
+            const text = (entry?.text || entry?.draft || "").trim();
+            if (!text) return null;
+            const startSeconds = Math.max(0, Number(entry.startSeconds || 0));
+            const endSeconds = Math.max(startSeconds + 1, Number(entry.endSeconds || elapsedSeconds()));
+            return {
+              id,
+              index,
+              speaker: "Candidate",
+              startSeconds: Math.round(startSeconds * 10) / 10,
+              endSeconds: Math.round(endSeconds * 10) / 10,
+              text,
+            };
+          })
+          .filter(Boolean);
+        return transcriptSegments;
+      }
+
+      function transcriptTextSnapshot(segments = snapshotTranscriptSegments()) {
+        return segments
+          .map(
+            (segment) =>
+              `[${formatTime(Math.floor(segment.startSeconds))} - ${formatTime(
+                Math.floor(segment.endSeconds)
+              )}] ${segment.speaker}: ${segment.text}`
+          )
+          .join("\n\n");
+      }
+
+      function setCameraState(state, detail) {
+        cameraState.classList.toggle("is-live", state === "Live");
+        cameraState.classList.toggle("is-error", state === "Blocked" || state === "Off");
+        cameraState.textContent = state;
+        cameraReadyCopy.textContent = detail;
+        panelVideoStatus.textContent = state === "Live" ? "Video live" : `Video ${state.toLowerCase()}`;
+      }
+
+      function updateCameraButton() {
+        const stream = realtime.localStream;
+        const hasStream = Boolean(stream);
+        const hasVideo = Boolean(stream?.getVideoTracks().length);
+
+        cameraButton.disabled = !hasStream || !hasVideo;
+        cameraButton.classList.toggle("is-off", hasStream && (!hasVideo || !cameraEnabled));
+        cameraButton.setAttribute("aria-label", cameraEnabled ? "Turn camera off" : "Turn camera on");
+        cameraButton.title = cameraEnabled ? "Camera" : "Camera off";
+        cameraTile.classList.toggle("camera-off", hasStream && !cameraEnabled);
+        cameraLabel.textContent = hasStream
+          ? hasVideo
+            ? cameraEnabled
+              ? "Taylor"
+              : "Camera off"
+            : "No camera"
+          : "Taylor";
+      }
+
+      function attachCameraPreview(stream) {
+        const hasVideo = Boolean(stream.getVideoTracks().length);
+
+        cameraVideo.srcObject = stream;
+        cameraTile.classList.toggle("has-video", hasVideo);
+        cameraEnabled = true;
+        updateCameraButton();
+
+        if (hasVideo) {
+          setCameraState("Live", "Camera is previewing locally while microphone streams to OpenAI.");
+        } else {
+          setCameraState("Blocked", "Camera unavailable. Microphone is still connected to realtime.");
+        }
+      }
+
+      function detachCameraPreview() {
+        cameraVideo.srcObject = null;
+        cameraTile.classList.remove("has-video", "camera-off");
+        cameraEnabled = true;
+        updateCameraButton();
+      }
+
+      function getPreferredMimeType(hasVideo) {
+        if (!window.MediaRecorder) return "";
+        const types = hasVideo
+          ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
+          : ["audio/webm;codecs=opus", "audio/webm"];
+        return types.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+      }
+
+      function startRecording(stream) {
+        if (!stream || !window.MediaRecorder) {
+          addSystemBubble("Local recording is unavailable in this browser.");
+          recordingStopPromise = Promise.resolve(null);
+          return;
+        }
+
+        recordedChunks = [];
+        latestRecordingBlob = null;
+        latestRecordingMimeType = "";
+        const hasVideo = Boolean(stream.getVideoTracks().length);
+        const mimeType = getPreferredMimeType(hasVideo);
+        const recorderSessionId = (recordingSessionId += 1);
+        recordingStopPromise = new Promise((resolve) => {
+          recordingStopResolve = resolve;
+        });
+
+        try {
+          mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        } catch (error) {
+          mediaRecorder = null;
+          recordingStopResolve?.(null);
+          addSystemBubble("Local recording could not start for this stream.");
+          return;
+        }
+
+        const recorder = mediaRecorder;
+        recorder.addEventListener("dataavailable", (event) => {
+          if (event.data && event.data.size > 0) recordedChunks.push(event.data);
+        });
+        recorder.addEventListener("stop", () => {
+          if (recorderSessionId !== recordingSessionId || !recordedChunks.length) {
+            recordingStopResolve?.(null);
+            return;
+          }
+          if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+
+          const fallbackType = hasVideo ? "video/webm" : "audio/webm";
+          const blob = new Blob(recordedChunks, { type: recorder.mimeType || fallbackType });
+          latestRecordingBlob = blob;
+          latestRecordingMimeType = blob.type || fallbackType;
+          recordingUrl = URL.createObjectURL(blob);
+          clipVideo.src = recordingUrl;
+          clipVideo.classList.add("has-recording");
+          recordingStopResolve?.(blob);
+        });
+        recorder.start(1000);
+      }
+
+      function stopRecording() {
+        const recorder = mediaRecorder;
+        mediaRecorder = null;
+
+        if (recorder && recorder.state !== "inactive") {
+          recorder.stop();
+          return recordingStopPromise;
+        }
+
+        return Promise.resolve(latestRecordingBlob);
+      }
+
+      function clearRecordingPreview() {
+        recordingSessionId += 1;
+        if (recordingUrl?.startsWith("blob:")) URL.revokeObjectURL(recordingUrl);
+        recordingUrl = null;
+        recordedChunks = [];
+        latestRecordingBlob = null;
+        latestRecordingMimeType = "";
+        recordingStopPromise = Promise.resolve(null);
+        recordingStopResolve = null;
+        clipVideo.pause();
+        clipVideo.removeAttribute("src");
+        clipVideo.load();
+        clipVideo.classList.remove("has-recording");
+      }
+
+      function handleRealtimeEvent(event) {
+        if (
+          event.type === "conversation.item.input_audio_transcription.completed" ||
+          event.type === "response.done" ||
+          event.type === "error"
+        ) {
+          realtimeEvents.push({
+            type: event.type,
+            atSeconds: elapsedSeconds(),
+            atIso: new Date().toISOString(),
+            event,
+          });
+        }
+
+        switch (event.type) {
+          case "session.created":
+            break;
+          case "session.updated":
+            break;
+          case "input_audio_buffer.speech_started":
+            break;
+          case "input_audio_buffer.speech_stopped":
+            break;
+          case "conversation.item.input_audio_transcription.delta": {
+            const entry = ensureTranscriptEntry(event.item_id);
+            if (!entry.draft) entry.startSeconds = elapsedSeconds();
+            entry.draft += event.delta || "";
+            entry.endSeconds = elapsedSeconds();
+            renderTranscript();
+            break;
+          }
+          case "conversation.item.input_audio_transcription.completed": {
+            const entry = ensureTranscriptEntry(event.item_id);
+            entry.text = event.transcript || entry.draft;
+            entry.draft = entry.text;
+            entry.endSeconds = elapsedSeconds();
+            snapshotTranscriptSegments();
+            renderTranscript();
+            break;
+          }
+          case "response.created":
+            ensureResponseBubble();
+            break;
+          case "response.output_text.delta":
+          case "response.text.delta":
+            appendResponseDelta(event.delta);
+            break;
+          case "response.output_text.done":
+          case "response.text.done":
+            if (event.text && event.text !== realtime.responseText) {
+              setResponseText(event.text);
+            }
+            break;
+          case "response.done": {
+            const finalText = extractResponseText(event.response);
+            if (finalText && finalText !== realtime.responseText.trim()) {
+              setResponseText(finalText);
+            }
+            finalizeResponse();
+            break;
+          }
+          case "error":
+            addSystemBubble(event.error?.message || "Realtime API returned an error.");
+            break;
+          default:
+            break;
+        }
+      }
+
+      function extractResponseText(response) {
+        const chunks = [];
+        for (const item of response?.output || []) {
+          if (item.type === "message") {
+            for (const part of item.content || []) {
+              if (part.type === "output_text" || part.type === "text") {
+                chunks.push(part.text || "");
+              }
+              if (part.transcript) chunks.push(part.transcript);
+            }
+          }
+          if (item.text) chunks.push(item.text);
+        }
+        return chunks.join(" ").trim();
+      }
+
+      async function startCall() {
+        if (isConnecting) return;
+
+        isConnecting = true;
+        startButton.disabled = true;
+        clearRecordingPreview();
+        resetSessionState();
+        feed.innerHTML = "";
+        asked = 0;
+        isMuted = false;
+        askedCount.textContent = "0";
+        updateMuteButtons();
+        addOpeningQuestion();
+        setTranscript("");
+        showScreen("call");
+        beginTimer();
+
+        try {
+          await startRealtimeSession();
+        } catch (error) {
+          clearInterval(timerId);
+          stopRecording();
+          stopRealtimeSession();
+          clearRecordingPreview();
+          addSystemBubble(readableError(error));
+        } finally {
+          isConnecting = false;
+          startButton.disabled = false;
+        }
+      }
+
+      async function requestInterviewMedia() {
+        const audio = {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        };
+        const video = {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        };
+
+        setCameraState("Asking", "Waiting for camera and microphone permission.");
+
+        try {
+          return await navigator.mediaDevices.getUserMedia({ audio, video });
+        } catch (cameraError) {
+          setCameraState("Blocked", "Camera unavailable. Trying microphone-only realtime.");
+
+          try {
+            const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio, video: false });
+            addSystemBubble("Camera was unavailable, so the live interview continued with microphone only.");
+            return audioOnlyStream;
+          } catch (audioError) {
+            throw audioError.name === "NotAllowedError" ? audioError : cameraError;
+          }
+        }
+      }
+
+      async function startRealtimeSession() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("This browser does not expose camera or microphone capture on navigator.mediaDevices.");
+        }
+
+        realtime = createRealtimeState();
+        const stream = await requestInterviewMedia();
+
+        const pc = new RTCPeerConnection();
+        const dc = pc.createDataChannel("oai-events");
+        const remoteAudio = document.createElement("audio");
+        remoteAudio.autoplay = true;
+        remoteAudio.hidden = true;
+        document.body.append(remoteAudio);
+
+        realtime.pc = pc;
+        realtime.dc = dc;
+        realtime.localStream = stream;
+        realtime.remoteAudio = remoteAudio;
+        attachCameraPreview(stream);
+        startRecording(stream);
+
+        stream.getAudioTracks().forEach((track) => pc.addTrack(track, stream));
+        pc.ontrack = (event) => {
+          remoteAudio.srcObject = event.streams[0];
+        };
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+            addSystemBubble(`WebRTC connection ${pc.connectionState}.`);
+          }
+        };
+        dc.addEventListener("message", (message) => {
+          try {
+            handleRealtimeEvent(JSON.parse(message.data));
+          } catch (error) {
+            console.error("Failed to parse realtime event", error);
+          }
+        });
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        const response = await fetch("/session", {
+          method: "POST",
+          body: offer.sdp,
+          headers: {
+            "Content-Type": "application/sdp",
+          },
+        });
+
+        const answerSdp = await response.text();
+        if (!response.ok) {
+          throw new Error(parseServerError(response.status, answerSdp));
+        }
+
+        await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      }
+
+      function requestFollowUpNow() {
+        if (!sendRealtimeEvent({
+          type: "response.create",
+          response: {
+            output_modalities: ["text"],
+            instructions:
+              "Based on the interview conversation so far, return exactly one concise follow-up question for the interviewer to ask next.",
+          },
+        })) {
+          addSystemBubble("Realtime event channel is not ready yet.");
+          return;
+        }
+
+        addSystemBubble("Requested a follow-up from the live conversation.");
+      }
+
+      function sendRealtimeEvent(event) {
+        if (!realtime.dc || realtime.dc.readyState !== "open") return false;
+        realtime.dc.send(JSON.stringify(event));
+        return true;
+      }
+
+      function stopRealtimeSession() {
+        realtime.localStream?.getTracks().forEach((track) => track.stop());
+        realtime.dc?.close();
+        realtime.pc?.close();
+        realtime.remoteAudio?.remove();
+        finalizeResponse();
+        realtime = createRealtimeState();
+        detachCameraPreview();
+      }
+
+      async function endCall() {
+        clearInterval(timerId);
+        sessionEndedAt = new Date().toISOString();
+        snapshotTranscriptSegments();
+        const stoppedRecording = stopRecording();
+        stopRealtimeSession();
+        finalDuration.textContent = `${formatTime(seconds)} source interview`;
+        showScreen("generating");
+        beginClipGeneration();
+
+        try {
+          const recordingBlob = await stoppedRecording;
+          await saveCaptureAndCreateClipPlan(recordingBlob);
+          finishClipGeneration();
+        } catch (error) {
+          console.error(error);
+          configureClipPlan(
+            createLocalClipPlan(),
+            recordingUrl,
+            `Server save or clip planning failed: ${error.message}`
+          );
+          finishClipGeneration();
+        }
+      }
+
+      function restart() {
+        clearInterval(timerId);
+        clearInterval(clipTimerId);
+        stopRecording();
+        stopRealtimeSession();
+        clearRecordingPreview();
+        transcriptSegments = [];
+        questionEvents = [];
+        realtimeEvents = [];
+        clipPlan = null;
+        clipRanges = [];
+        clipPercent.textContent = "0%";
+        clipProgress.style.width = "0%";
+        clipStep.textContent = generationSteps[0];
+        renderClipPlan(null);
+        refineInput.value = "";
+        refineStatus.textContent = "Prompt the editor to reshape the cut before sharing.";
+        setTranscript("");
+        setCameraState("Ready", "Browser permission requested when the interview starts.");
+        showScreen("precall");
+      }
+
+      function beginClipGeneration() {
+        clearInterval(clipTimerId);
+        let progress = 0;
+        clipPercent.textContent = "0%";
+        clipProgress.style.width = "0%";
+        clipStep.textContent = generationSteps[0];
+        document.querySelectorAll(".analysis-step").forEach((step, index) => {
+          step.classList.toggle("is-active", index === 0);
+        });
+
+        clipTimerId = setInterval(() => {
+          progress = Math.min(88, progress + 3 + Math.floor(Math.random() * 6));
+          const stepIndex = Math.min(3, Math.floor(progress / 26));
+          clipPercent.textContent = `${progress}%`;
+          clipProgress.style.width = `${progress}%`;
+          clipStep.textContent = generationSteps[stepIndex];
+          document.querySelectorAll(".analysis-step").forEach((step, index) => {
+            step.classList.toggle("is-active", index <= stepIndex);
+          });
+
+        }, 260);
+      }
+
+      function finishClipGeneration() {
+        clearInterval(clipTimerId);
+        clipPercent.textContent = "100%";
+        clipProgress.style.width = "100%";
+        clipStep.textContent = generationSteps[3];
+        document.querySelectorAll(".analysis-step").forEach((step) => {
+          step.classList.add("is-active");
+        });
+        setTimeout(() => showScreen("clip"), 650);
+      }
+
+      async function saveCaptureAndCreateClipPlan(recordingBlob) {
+        const segments = snapshotTranscriptSegments();
+        const metadata = {
+          prototype: "6",
+          sessionId,
+          sessionStartedAt,
+          sessionEndedAt,
+          durationSeconds: seconds,
+          recordingMimeType: recordingBlob?.type || latestRecordingMimeType || "",
+          userAgent: navigator.userAgent,
+        };
+
+        const form = new FormData();
+        form.set("metadata", JSON.stringify(metadata));
+        form.set("transcript", JSON.stringify(segments));
+        form.set("questions", JSON.stringify(questionEvents));
+        form.set("events", JSON.stringify(realtimeEvents));
+
+        if (recordingBlob) {
+          form.set("recording", recordingBlob, `interview-${sessionId}${extensionForMime(recordingBlob.type)}`);
+        }
+
+        clipStep.textContent = generationSteps[0];
+        const captureResponse = await fetch("/capture", {
+          method: "POST",
+          body: form,
+        });
+        const capture = await captureResponse.json();
+        if (!captureResponse.ok) throw new Error(capture.error || "Unable to save capture data.");
+
+        if (capture.recording?.url) {
+          clipVideo.src = capture.recording.url;
+          clipVideo.classList.add("has-recording");
+        }
+
+        clipStep.textContent = generationSteps[1];
+        const planResponse = await fetch("/clip-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folderName: capture.folderName,
+            sessionId,
+            durationSeconds: seconds,
+            transcriptSegments: segments,
+            transcriptText: capture.transcriptText || transcriptTextSnapshot(segments),
+          }),
+        });
+        const planPayload = await planResponse.json();
+        if (!planResponse.ok) throw new Error(planPayload.error || "Unable to create clip plan.");
+
+        configureClipPlan(
+          planPayload.clipPlan || createLocalClipPlan(),
+          capture.recording?.url || recordingUrl,
+          planPayload.warning || `Saved in ${capture.folderName}`
+        );
+      }
+
+      function configureClipPlan(plan, sourceUrl, statusText = "") {
+        clipPlan = normalizeClientClipPlan(plan);
+        clipRanges = clipPlan.sections.map((section) => ({
+          startSeconds: section.startSeconds,
+          endSeconds: section.endSeconds,
+        }));
+        activeClipRangeIndex = 0;
+
+        if (sourceUrl) {
+          if (recordingUrl?.startsWith("blob:") && sourceUrl !== recordingUrl) {
+            URL.revokeObjectURL(recordingUrl);
+          }
+          recordingUrl = sourceUrl;
+          clipVideo.src = sourceUrl;
+          clipVideo.classList.add("has-recording");
+        }
+
+        renderClipPlan(clipPlan);
+        refineStatus.textContent =
+          statusText || `${clipPlan.targetDurationSeconds || 30}s skip-preview is ready.`;
+      }
+
+      function normalizeClientClipPlan(plan) {
+        const fallback = createLocalClipPlan();
+        const sections = Array.isArray(plan?.sections) ? plan.sections : fallback.sections;
+        let used = 0;
+        const normalizedSections = sections
+          .map((section, index) => {
+            const startSeconds = Math.max(0, Number(section.startSeconds || 0));
+            const rawEnd = Math.max(startSeconds + 1, Number(section.endSeconds || startSeconds + 8));
+            const remaining = Math.max(1, 30 - used);
+            const endSeconds = Math.min(rawEnd, startSeconds + remaining);
+            used += Math.max(0, endSeconds - startSeconds);
+            return {
+              label: section.label || ["Problem", "Idea", "Decisions"][index] || `Moment ${index + 1}`,
+              reason: section.reason || "Selected for the 30 second cutdown.",
+              transcriptQuote: section.transcriptQuote || "",
+              startSeconds: Math.round(startSeconds * 10) / 10,
+              endSeconds: Math.round(endSeconds * 10) / 10,
+            };
+          })
+          .filter((section) => section.endSeconds > section.startSeconds);
+
+        return {
+          title: plan?.title || fallback.title,
+          summary: plan?.summary || fallback.summary,
+          targetDurationSeconds: Math.min(30, Math.round(used * 10) / 10),
+          skipStrategy: plan?.skipStrategy || fallback.skipStrategy,
+          sections: normalizedSections.length ? normalizedSections : fallback.sections,
+        };
+      }
+
+      function createLocalClipPlan() {
+        const segments = snapshotTranscriptSegments();
+        const source = segments.length
+          ? segments
+          : [{ text: "Preview the strongest available portion of the recording.", startSeconds: 0, endSeconds: seconds || 30 }];
+        let used = 0;
+        const sections = source.slice(0, 3).map((segment, index) => {
+          const startSeconds = Math.max(0, Number(segment.startSeconds || 0));
+          const remaining = Math.max(1, 30 - used);
+          const endSeconds = Math.min(
+            Math.max(startSeconds + 1, Number(segment.endSeconds || startSeconds + 10)),
+            startSeconds + remaining
+          );
+          used += endSeconds - startSeconds;
+          return {
+            label: ["Problem", "Idea", "Decisions"][index] || `Moment ${index + 1}`,
+            startSeconds,
+            endSeconds,
+            reason: "Local fallback timestamp from the captured transcript.",
+            transcriptQuote: (segment.text || "").slice(0, 180),
+          };
+        });
+
+        return {
+          title: "30 second interview cutdown",
+          summary: "A timestamp-based preview that skips through the strongest captured answers.",
+          targetDurationSeconds: Math.min(30, Math.round(used * 10) / 10),
+          skipStrategy: "Skip between selected answer ranges and omit lower-signal material.",
+          sections,
+        };
+      }
+
+      function renderClipPlan(plan) {
+        clipPlanTitle.textContent = plan?.title || "Waiting for clip plan";
+        clipPlanSummary.textContent =
+          plan?.summary || "The finished preview will skip directly between high-signal moments.";
+        clipSegments.innerHTML = "";
+
+        const sections = plan?.sections || [];
+        if (!sections.length) {
+          const empty = document.createElement("div");
+          empty.className = "clip-segment";
+          empty.innerHTML =
+            "<time>--:--</time><div><strong>No sections yet</strong><span>End the interview to save data and create a 30 second skip-preview.</span></div>";
+          clipSegments.append(empty);
+          return;
+        }
+
+        sections.forEach((section) => {
+          const row = document.createElement("div");
+          row.className = "clip-segment";
+          const quote = section.transcriptQuote ? ` - ${section.transcriptQuote}` : "";
+          row.innerHTML = `
+            <time>${formatTime(Math.floor(section.startSeconds))}-${formatTime(Math.floor(section.endSeconds))}</time>
+            <div>
+              <strong>${escapeHtml(section.label)}</strong>
+              <span>${escapeHtml(section.reason + quote)}</span>
+            </div>
+          `;
+          clipSegments.append(row);
+        });
+      }
+
+      function extensionForMime(mimeType = "") {
+        if (mimeType.includes("mp4")) return ".mp4";
+        if (mimeType.includes("webm")) return ".webm";
+        if (mimeType.includes("ogg")) return ".ogg";
+        if (mimeType.includes("wav")) return ".wav";
+        return ".webm";
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;");
+      }
+
+      function syncClipPlayback() {
+        if (!clipRanges.length || clipVideo.paused) return;
+        const current = clipVideo.currentTime;
+        let activeRange = clipRanges[activeClipRangeIndex];
+
+        if (!activeRange || current < activeRange.startSeconds - 0.25 || current > activeRange.endSeconds + 0.25) {
+          const foundIndex = clipRanges.findIndex(
+            (range) => current >= range.startSeconds && current <= range.endSeconds
+          );
+          activeClipRangeIndex = foundIndex === -1 ? 0 : foundIndex;
+          activeRange = clipRanges[activeClipRangeIndex];
+          if (foundIndex === -1 && activeRange) clipVideo.currentTime = activeRange.startSeconds;
+          return;
+        }
+
+        if (current >= activeRange.endSeconds - 0.12) {
+          activeClipRangeIndex += 1;
+          const nextRange = clipRanges[activeClipRangeIndex];
+          if (nextRange) {
+            clipVideo.currentTime = nextRange.startSeconds;
+          } else {
+            clipVideo.pause();
+            activeClipRangeIndex = 0;
+            clipVideo.currentTime = clipRanges[0]?.startSeconds || 0;
+          }
+        }
+      }
+
+      function toggleMute() {
+        isMuted = !isMuted;
+        realtime.localStream?.getAudioTracks().forEach((track) => {
+          track.enabled = !isMuted;
+        });
+        updateMuteButtons();
+      }
+
+      function updateMuteButtons() {
+        for (const button of [pauseButton, headerMuteButton]) {
+          button.innerHTML = isMuted ? mutedIcon : micIcon;
+          button.setAttribute("aria-label", isMuted ? "Unmute microphone" : "Mute microphone");
+          button.title = isMuted ? "Unmute" : "Mute";
+        }
+      }
+
+      function parseServerError(status, body) {
+        try {
+          const parsed = JSON.parse(body);
+          return parsed.details || parsed.error || `Server returned ${status}`;
+        } catch {
+          return body || `Server returned ${status}`;
+        }
+      }
+
+      function readableError(error) {
+        if (error.name === "NotAllowedError") {
+          return "Camera or microphone access was blocked. Allow device access and start the interview again.";
+        }
+
+        if (error.name === "NotFoundError") {
+          return "No usable microphone was found for the live interview session.";
+        }
+
+        return error.message || "Unable to start the live interview session.";
+      }
+
+      startButton.addEventListener("click", startCall);
+      endButton.addEventListener("click", endCall);
+      restartButton.addEventListener("click", restart);
+      nextButton.addEventListener("click", requestFollowUpNow);
+      pauseButton.addEventListener("click", toggleMute);
+      headerMuteButton.addEventListener("click", toggleMute);
+      clipVideo.addEventListener("play", () => {
+        if (!clipRanges.length) return;
+        const inRange = clipRanges.some(
+          (range, index) => {
+            const matches = clipVideo.currentTime >= range.startSeconds && clipVideo.currentTime <= range.endSeconds;
+            if (matches) activeClipRangeIndex = index;
+            return matches;
+          }
+        );
+        if (!inRange) {
+          activeClipRangeIndex = 0;
+          clipVideo.currentTime = clipRanges[0].startSeconds;
+        }
+      });
+      clipVideo.addEventListener("timeupdate", syncClipPlayback);
+      cameraButton.addEventListener("click", () => {
+        const videoTracks = realtime.localStream?.getVideoTracks() || [];
+        if (!videoTracks.length) return;
+
+        cameraEnabled = !cameraEnabled;
+        videoTracks.forEach((track) => {
+          track.enabled = cameraEnabled;
+        });
+        setCameraState(
+          cameraEnabled ? "Live" : "Off",
+          cameraEnabled
+            ? "Camera is previewing locally while microphone streams to OpenAI."
+            : "Camera track is paused. Microphone remains live unless muted."
+        );
+        updateCameraButton();
+      });
+      window.addEventListener("beforeunload", () => {
+        stopRecording();
+        stopRealtimeSession();
+      });
+
+      refineForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const prompt = refineInput.value.trim();
+        refineStatus.textContent = prompt
+          ? `Refining live clip around: "${prompt}"`
+          : "Try asking for a tighter intro, more depth, or less filler.";
+      });
+
+      function enableCameraDrag() {
+        let active = false;
+        let startX = 0;
+        let startY = 0;
+        let startLeft = 0;
+        let startTop = 0;
+
+        cameraTile.addEventListener("pointerdown", (event) => {
+          active = true;
+          cameraTile.setPointerCapture(event.pointerId);
+          const rect = cameraTile.getBoundingClientRect();
+          const parentRect = cameraTile.offsetParent.getBoundingClientRect();
+          startX = event.clientX;
+          startY = event.clientY;
+          startLeft = rect.left - parentRect.left;
+          startTop = rect.top - parentRect.top;
+        });
+
+        cameraTile.addEventListener("pointermove", (event) => {
+          if (!active) return;
+          const parentRect = cameraTile.offsetParent.getBoundingClientRect();
+          const tileRect = cameraTile.getBoundingClientRect();
+          const nextLeft = startLeft + event.clientX - startX;
+          const nextTop = startTop + event.clientY - startY;
+          const clampedLeft = Math.max(10, Math.min(nextLeft, parentRect.width - tileRect.width - 10));
+          const clampedTop = Math.max(68, Math.min(nextTop, parentRect.height - tileRect.height - 92));
+
+          cameraTile.style.left = `${clampedLeft}px`;
+          cameraTile.style.top = `${clampedTop}px`;
+          cameraTile.style.right = "auto";
+          cameraTile.style.bottom = "auto";
+        });
+
+        cameraTile.addEventListener("pointerup", () => {
+          active = false;
+        });
+
+        cameraTile.addEventListener("pointercancel", () => {
+          active = false;
+        });
+      }
+
+      updateMuteButtons();
+      updateCameraButton();
+      renderClipPlan(null);
+      setCameraState("Ready", "Browser permission requested when the interview starts.");
+      enableCameraDrag();
+    </script>
+  </body>
+</html>
